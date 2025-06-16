@@ -62,6 +62,7 @@ function setupEventListeners() {
     // Formulários
     document.getElementById('reservation-form').addEventListener('submit', handleAddOrUpdateReservation);
     document.getElementById('payment-form').addEventListener('submit', handleRegisterPayment);
+    document.getElementById('transaction-form').addEventListener('submit', handleSaveTransaction); // Novo listener
 }
 
 function navigateMonth(direction) {
@@ -104,12 +105,13 @@ function calculateFinancialSummary(allTransactions) {
     };
 
     allTransactions.forEach(tx => {
+        const amount = Math.abs(tx.amount); // Usamos o valor absoluto para os cálculos
         if (tx.type === 'revenue') {
-            summary.confirmedRevenue += tx.amount;
+            summary.confirmedRevenue += amount;
         } else if (tx.type === 'expense') {
-            summary.totalExpenses += tx.amount;
+            summary.totalExpenses += amount;
             if (tx.category === 'Condomínio') {
-                summary.condominiumExpenses += tx.amount;
+                summary.condominiumExpenses += amount;
             }
         }
     });
@@ -132,7 +134,7 @@ function updateDashboardUI(summary, forecast) {
     el('cashBalance').textContent = formatCurrency(summary.cashBalance);
     el('netProfit').textContent = formatCurrency(summary.netProfitToDivide);
     el('confirmedRevenue').textContent = formatCurrency(summary.confirmedRevenue);
-    el('condominiumExpenses').textContent = formatCurrency(summary.condominiumExpenses);
+    el('condominiumExpenses').textContent = formatCurrency(summary.condominiumExpenses * -1); // Exibe como negativo
     el('forecast').textContent = formatCurrency(forecast);
 }
 
@@ -165,11 +167,14 @@ function renderTransactionsTable(allTransactions) {
     if (!tableBody) return;
     tableBody.innerHTML = allTransactions.map(tx => {
         const isRevenue = tx.type === 'revenue';
+        const amount = Math.abs(tx.amount); // Pega o valor absoluto para formatar
+        const formattedAmount = formatCurrency(amount);
+
         return `
             <tr class="hover:bg-slate-50">
                 <td class="p-3">${tx.description}</td>
                 <td class="p-3 font-medium ${isRevenue ? 'text-green-600' : 'text-red-600'}">
-                    ${isRevenue ? '+' : '-'} ${formatCurrency(tx.amount)}
+                    ${isRevenue ? '+' : '-'} ${formattedAmount}
                 </td>
                 <td class="p-3 text-slate-600">${tx.category || 'N/A'}</td>
                 <td class="p-3 text-slate-600">${tx.date.toDate().toLocaleDateString('pt-BR')}</td>
@@ -266,6 +271,35 @@ async function handleRegisterPayment(event) {
     } catch (error) {
         console.error("Erro ao registrar pagamento: ", error);
         alert("Ocorreu um erro ao registrar o pagamento. Tente novamente.");
+    }
+}
+
+// --- LÓGICA DE TRANSAÇÕES MANUAIS ---
+async function handleSaveTransaction(event) {
+    event.preventDefault();
+    const form = event.target;
+    const type = form['transaction-type'].value;
+    
+    const amount = parseFloat(form['tx-amount'].value);
+    if (isNaN(amount) || amount <= 0) {
+        alert('Por favor, insira um valor válido.');
+        return;
+    }
+
+    const transactionData = {
+        description: form['tx-description'].value.trim(),
+        amount: amount,
+        date: firebase.firestore.Timestamp.fromDate(new Date(form['tx-date'].value + 'T00:00:00')),
+        type: type,
+        category: type === 'expense' ? form['tx-category'].value : 'Receita Avulsa'
+    };
+
+    try {
+        await db.collection('financial_transactions').add(transactionData);
+        closeModal('transaction-modal');
+    } catch (error) {
+        console.error("Erro ao salvar transação: ", error);
+        alert("Não foi possível salvar a transação. Tente novamente.");
     }
 }
 
@@ -380,6 +414,34 @@ function openPaymentModal(reservationId) {
     modal.classList.remove('hidden');
 }
 
+function openTransactionModal(type) {
+    const modal = document.getElementById('transaction-modal');
+    const form = document.getElementById('transaction-form');
+    form.reset();
+    
+    document.getElementById('transaction-type').value = type;
+    document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+    
+    const title = document.getElementById('transaction-modal-title');
+    const categoryWrapper = document.getElementById('category-wrapper');
+    const submitButton = document.getElementById('transaction-submit-button');
+    
+    if (type === 'revenue') {
+        title.textContent = 'Nova Receita Avulsa';
+        categoryWrapper.classList.add('hidden');
+        document.getElementById('tx-category').required = false;
+        submitButton.className = "bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors";
+
+    } else { // expense
+        title.textContent = 'Nova Despesa';
+        categoryWrapper.classList.remove('hidden');
+        document.getElementById('tx-category').required = true;
+        submitButton.className = "bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors";
+    }
+
+    modal.classList.remove('hidden');
+}
+
 function closeModal(modalId) {
     document.getElementById(modalId)?.classList.add('hidden');
 }
@@ -391,4 +453,8 @@ function showTab(tabId) {
     document.querySelector(`button[onclick="showTab('${tabId}')"]`)?.classList.add('active');
 }
 
-function formatCurrency(value) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0); }
+function formatCurrency(value) {
+    // Garante que o valor seja um número antes de formatar
+    const numberValue = Number(value) || 0;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numberValue);
+}
