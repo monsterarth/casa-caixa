@@ -43,6 +43,7 @@
         <nav class="flex flex-wrap gap-2 mb-8 bg-white p-2 rounded-lg shadow-sm">
             <button class="tab-button active" onclick="showTab('dashboard')"><i class="fas fa-chart-pie mr-2"></i>Dashboard</button>
             <button class="tab-button" onclick="showTab('calendar')"><i class="fas fa-calendar-alt mr-2"></i>Calendário</button>
+            <button class="tab-button" onclick="showTab('reservations')"><i class="fas fa-list-check mr-2"></i>Reservas</button>
             <button class="tab-button" onclick="showTab('transactions')"><i class="fas fa-exchange-alt mr-2"></i>Lançamentos</button>
         </nav>
 
@@ -93,11 +94,84 @@
                             <h3 id="current-month-year" class="text-xl font-bold text-center w-48"></h3>
                             <button id="next-month-btn" class="p-2 rounded-full hover:bg-slate-100 transition-colors"><i class="fas fa-chevron-right"></i></button>
                         </div>
-                        <div>
-                             <button onclick="openReservationModal()" class="w-full bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">
-                                <i class="fas fa-plus mr-2"></i>Nova Reserva
-                            </button>
+                        <div id="reservations-tab" class="tab-content">
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                     <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-slate-800">Gerenciador de Reservas</h2>
                         </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-slate-600">
+                                <tr>
+                                    <th class="p-3">Hóspede</th>
+                                    <th class="p-3">Período</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3 text-right">Valor Total</th>
+                                    <th class="p-3 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservations-table-body" class="divide-y divide-slate-200">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+                        <div id="reservation-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4 overflow-y-auto" style="max-height: 90vh;">
+            <h2 id="reservation-modal-title" class="text-2xl font-bold mb-4">Nova Reserva</h2>
+            
+            <div id="financial-details-section" class="hidden mb-6 bg-slate-50 p-4 rounded-lg">
+                 <h3 class="text-lg font-semibold text-slate-800 mb-3">Resumo Financeiro da Reserva</h3>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                        <p class="text-sm text-slate-500">Valor Total</p>
+                        <p id="details-total" class="font-bold text-lg text-slate-900">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">Valor Pago</p>
+                        <p id="details-paid" class="font-bold text-lg text-green-600">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">Saldo Devedor</p>
+                        <p id="details-due" class="font-bold text-lg text-red-600">R$ 0,00</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <button id="register-payment-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors w-full"><i class="fas fa-dollar-sign mr-2"></i>Registrar Pagamento</button>
+                </div>
+            </div>
+
+            <form id="reservation-form">
+                <input type="hidden" id="reservation-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="res-status" class="block text-sm font-medium text-slate-700">Status da Reserva</label>
+                        <select id="res-status" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                            <option value="Pré-reserva">Pré-reserva</option>
+                            <option value="Confirmada">Confirmada</option>
+                            <option value="Em andamento">Em andamento</option>
+                            <option value="Finalizada">Finalizada</option>
+                            <option value="Cancelada">Cancelada</option>
+                            <option value="No show">No show</option>
+                            <option value="Arquivada">Arquivada</option>
+                            <option value="Excluida">Excluída (Soft Delete)</option>
+                        </select>
+                    </div>
+                    <div><label for="res-guest-name" class="block text-sm font-medium text-slate-700">Nome do Hóspede</label><input type="text" id="res-guest-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                     <div><label for="res-property" class="block text-sm font-medium text-slate-700">Propriedade</label><select id="res-property" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"><option value="estancia_do_vale">Estância do Vale</option><option value="vale_do_sabia">Vale do Sabiá</option></select></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label for="res-start-date" class="block text-sm font-medium text-slate-700">Data de Entrada</label><input type="date" id="res-start-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                        <div><label for="res-end-date" class="block text-sm font-medium text-slate-700">Data de Saída</label><input type="date" id="res-end-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                    </div>
+                    <div><label for="res-total-value" class="block text-sm font-medium text-slate-700">Valor Total da Reserva (R$)</label><input type="number" step="0.01" id="res-total-value" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                </div>
+                <div class="flex justify-end gap-2 mt-8">
+                    <button type="button" onclick="closeModal('reservation-modal')" class="text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100">Cancelar</button>
+                    <button type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar Reserva</button>
+                </div>
+            </form>
+        </div>
+    </div>
                     </div>
                     <div class="grid grid-cols-7 gap-2 text-center font-bold text-slate-600 mb-2">
                         <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
