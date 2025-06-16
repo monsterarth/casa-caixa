@@ -26,6 +26,7 @@
 </head>
 <body class="text-slate-800">
 
+    <!-- Tela de Login -->
     <div id="login-container" class="min-h-screen flex items-center justify-center bg-slate-100">
         <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
             <h1 class="text-3xl font-bold text-slate-900">Gestor de Propriedades</h1>
@@ -37,6 +38,7 @@
         </div>
     </div>
 
+    <!-- Conteúdo Principal do App (Inicialmente Oculto) -->
     <div id="app" class="container mx-auto p-4 md:p-8 hidden">
         <header class="mb-8">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -59,16 +61,60 @@
         </nav>
 
         <main>
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-slate-800 mb-1">Visão Geral Financeira</h2>
+                    <p class="text-slate-600">Indicadores chave de desempenho (KPIs) do seu negócio.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="stat-card col-span-1 md:col-span-2 lg:col-span-1 bg-white p-6 rounded-xl shadow-md border-l-4 border-sky-400">
+                        <h3 class="text-slate-500 text-lg font-medium">LUCRO LÍQUIDO A DIVIDIR</h3>
+                        <p id="netProfit" class="text-4xl font-bold text-slate-900 mt-2">R$ 0,00</p>
+                    </div>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (Real)</h3>
+                        <p id="cashBalance" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
+                    </div>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-slate-500 text-lg font-medium">Previsão a Receber</h3>
+                        <p id="forecastedRevenue" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Tab -->
+            <div id="calendar-tab" class="tab-content">
+                 <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-slate-800 mb-1">Calendário de Ocupação</h2>
+                </div>
+                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold">Junho 2025</h3>
+                        <div><button class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors"><i class="fas fa-plus mr-2"></i>Nova Reserva</button></div>
+                    </div>
+                    <div class="calendar-grid grid border-t border-l border-slate-200">
+                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Dom</div>
+                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Seg</div>
+                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Ter</div>
+                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Qua</div>
+                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Qui</div>
+                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Sex</div>
+                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Sáb</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Tab -->
             <div id="transactions-tab" class="tab-content">
                 <div class="mb-8">
                     <h2 class="text-2xl font-semibold text-slate-800 mb-1">Histórico de Lançamentos</h2>
-                    <p class="text-slate-600">Esta tabela detalha cada movimento financeiro registrado, funcionando como o livro-razão completo do seu negócio.</p>
                 </div>
-                <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                    <div class="flex justify-end mb-4 gap-2">
+                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                     <div class="flex justify-end mb-4 gap-2">
                         <button onclick="openTransactionModal('revenue')" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"><i class="fas fa-plus mr-2"></i>Receita Avulsa</button>
                         <button onclick="openTransactionModal('expense')" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"><i class="fas fa-minus mr-2"></i>Nova Despesa</button>
-                    </div>
+                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 text-slate-600">
@@ -84,12 +130,18 @@
                     </div>
                 </div>
             </div>
-            <div id="dashboard-tab" class="tab-content active"></div>
-            <div id="calendar-tab" class="tab-content"></div>
-            <div id="architecture-tab" class="tab-content"></div>
+            
+            <!-- Architecture Tab -->
+            <div id="architecture-tab" class="tab-content">
+                <div class="mb-8"><h2 class="text-2xl font-semibold text-slate-800 mb-1">Visualização da Arquitetura</h2></div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Fluxo de Dados: Registro de Pagamento</h3>
+                </div>
+            </div>
         </main>
     </div>
 
+    <!-- Modal de Transação -->
     <div id="transaction-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4">
             <h2 id="transaction-modal-title" class="text-2xl font-bold mb-4">Novo Lançamento</h2>
@@ -109,4 +161,23 @@
                             <option>Condomínio</option>
                             <option>Pessoal - Arthur</option>
                             <option>Pessoal - Lucas</option>
-                        </select
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="closeModal('transaction-modal')" class="text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100">Cancelar</button>
+                    <button id="transaction-submit-button" type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Seu script -->
+    <script src="app.js"></script>
+</body>
+</html>
