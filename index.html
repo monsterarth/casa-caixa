@@ -14,6 +14,7 @@
         .tab-button.active { background-color: #38bdf8; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .stat-card { transition: all 0.3s ease; }
         .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
         .calendar-day { min-height: 120px; cursor: pointer; }
@@ -21,12 +22,10 @@
 </head>
 <body class="text-slate-800">
 
-    <!-- Tela de Login -->
     <div id="login-container" class="min-h-screen flex items-center justify-center bg-slate-100">
         <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center"><h1 class="text-3xl font-bold text-slate-900">Gestor de Propriedades</h1><p class="text-slate-600 mt-2 mb-8">Faça login para continuar.</p><button id="login-button" class="w-full bg-sky-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-sky-600 transition-colors flex items-center justify-center gap-3"><i class="fab fa-google"></i>Entrar com Google</button></div>
     </div>
 
-    <!-- Conteúdo Principal do App -->
     <div id="app" class="container mx-auto p-4 md:p-8 hidden">
         <header class="mb-8">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -48,11 +47,10 @@
         </nav>
 
         <main>
-            <!-- Dashboard Tab -->
             <div id="dashboard-tab" class="tab-content">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 space-y-6">
-                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div class="stat-card bg-white p-6 rounded-xl shadow-md border-l-4 border-sky-400">
                                 <h3 class="text-slate-500 text-lg font-medium">LUCRO LÍQUIDO A DIVIDIR</h3>
                                 <p id="netProfit" class="text-4xl font-bold text-slate-900 mt-2">R$ 0,00</p>
@@ -61,16 +59,20 @@
                                 <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (Real)</h3>
                                 <p id="cashBalance" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
                             </div>
+                             <div class="stat-card bg-white p-6 rounded-xl shadow-md">
+                                <h3 class="text-slate-500 text-lg font-medium">Previsão a Receber</h3>
+                                <p id="forecast" class="text-3xl font-bold text-amber-500 mt-2">R$ 0,00</p>
+                            </div>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-md">
-                            <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento</h3>
+                            <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento para Divisão</h3>
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <p class="text-slate-500">Receita Confirmada</p>
                                     <p id="confirmedRevenue" class="text-2xl font-bold text-green-600">R$ 0,00</p>
                                 </div>
                                 <div>
-                                    <p class="text-slate-500">Despesas Condomínio</p>
+                                    <p class="text-slate-500">Despesas do Condomínio</p>
                                     <p id="condominiumExpenses" class="text-2xl font-bold text-red-600">R$ 0,00</p>
                                 </div>
                             </div>
@@ -83,7 +85,6 @@
                 </div>
             </div>
 
-            <!-- Calendar Tab -->
             <div id="calendar-tab" class="tab-content">
                  <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
                      <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
@@ -105,16 +106,11 @@
                 </div>
             </div>
 
-            <!-- Transactions Tab -->
             <div id="transactions-tab" class="tab-content">
                  <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
                      <div class="flex justify-between items-center mb-4">
                         <h2 class="text-2xl font-semibold text-slate-800">Histórico de Lançamentos</h2>
-                        <div class="flex gap-2">
-                            <button onclick="openTransactionModal('revenue')" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"><i class="fas fa-plus mr-2"></i>Receita</button>
-                            <button onclick="openTransactionModal('expense')" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"><i class="fas fa-minus mr-2"></i>Despesa</button>
                         </div>
-                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 text-slate-600"><tr><th class="p-3">Descrição</th><th class="p-3">Valor</th><th class="p-3">Categoria</th><th class="p-3">Data</th></tr></thead>
@@ -126,10 +122,31 @@
         </main>
     </div>
 
-    <!-- Modals -->
     <div id="reservation-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4">
-            <h2 id="reservation-modal-title" class="text-2xl font-bold mb-6">Nova Reserva</h2>
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4 overflow-y-auto" style="max-height: 90vh;">
+            <h2 id="reservation-modal-title" class="text-2xl font-bold mb-4">Nova Reserva</h2>
+            
+            <div id="financial-details-section" class="hidden mb-6 bg-slate-50 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-slate-800 mb-3">Resumo Financeiro da Reserva</h3>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                        <p class="text-sm text-slate-500">Valor Total</p>
+                        <p id="details-total" class="font-bold text-lg text-slate-900">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">Valor Pago</p>
+                        <p id="details-paid" class="font-bold text-lg text-green-600">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">Saldo Devedor</p>
+                        <p id="details-due" class="font-bold text-lg text-red-600">R$ 0,00</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <button id="register-payment-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors w-full"><i class="fas fa-dollar-sign mr-2"></i>Registrar Pagamento</button>
+                </div>
+            </div>
+
             <form id="reservation-form">
                 <input type="hidden" id="reservation-id">
                 <div class="space-y-4">
@@ -139,19 +156,35 @@
                         <div><label for="res-start-date" class="block text-sm font-medium text-slate-700">Data de Entrada</label><input type="date" id="res-start-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
                         <div><label for="res-end-date" class="block text-sm font-medium text-slate-700">Data de Saída</label><input type="date" id="res-end-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
                     </div>
-                    <div><label for="res-total-value" class="block text-sm font-medium text-slate-700">Valor Total (R$)</label><input type="number" step="0.01" id="res-total-value" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                    <div><label for="res-total-value" class="block text-sm font-medium text-slate-700">Valor Total da Reserva (R$)</label><input type="number" step="0.01" id="res-total-value" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
                 </div>
                 <div class="flex justify-end gap-2 mt-8">
                     <button type="button" onclick="closeModal('reservation-modal')" class="text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100">Cancelar</button>
-                    <button id="reservation-submit-button" type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar Reserva</button>
+                    <button type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar Reserva</button>
                 </div>
             </form>
         </div>
     </div>
     
-    <div id="transaction-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden"></div>
+    <div id="payment-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
+            <h2 class="text-2xl font-bold mb-6">Registrar Pagamento</h2>
+            <form id="payment-form">
+                <input type="hidden" id="payment-reservation-id">
+                <p class="mb-4">Registrando pagamento para a reserva de <strong id="payment-guest-name"></strong>.</p>
+                <div>
+                    <label for="payment-amount" class="block text-sm font-medium text-slate-700">Valor do Pagamento (R$)</label>
+                    <input type="number" step="0.01" id="payment-amount" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                </div>
+                <div class="flex justify-end gap-2 mt-8">
+                    <button type="button" onclick="closeModal('payment-modal')" class="text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100">Cancelar</button>
+                    <button type="submit" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Confirmar Pagamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    <!-- Firebase SDK e Script -->
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
