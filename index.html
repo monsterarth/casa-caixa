@@ -46,125 +46,29 @@
                 </div>
                 <div class="flex items-center gap-4 text-sm text-slate-500 mt-4 md:mt-0">
                     <span id="user-email"></span>
-                    <button id="logout-button" class="text-red-500 hover:text-red-700 font-medium">
-                        <i class="fas fa-sign-out-alt mr-1"></i>Sair
-                    </button>
+                    <button id="logout-button" class="text-red-500 hover:text-red-700 font-medium"><i class="fas fa-sign-out-alt mr-1"></i>Sair</button>
                 </div>
             </div>
         </header>
 
         <nav class="flex flex-wrap gap-2 mb-8">
-            <button class="tab-button active text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('dashboard')">
-                <i class="fas fa-chart-pie mr-2"></i>Dashboard
-            </button>
-            <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('calendar')">
-                <i class="fas fa-calendar-alt mr-2"></i>Calendário
-            </button>
-            <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('transactions')">
-                <i class="fas fa-exchange-alt mr-2"></i>Lançamentos
-            </button>
-             <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('architecture')">
-                <i class="fas fa-sitemap mr-2"></i>Arquitetura
-            </button>
+            <button class="tab-button active text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('dashboard')"><i class="fas fa-chart-pie mr-2"></i>Dashboard</button>
+            <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('calendar')"><i class="fas fa-calendar-alt mr-2"></i>Calendário</button>
+            <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('transactions')"><i class="fas fa-exchange-alt mr-2"></i>Lançamentos</button>
+            <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('architecture')"><i class="fas fa-sitemap mr-2"></i>Arquitetura</button>
         </nav>
 
         <main>
-            <div id="dashboard-tab" class="tab-content active">
-                <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-slate-800 mb-1">Visão Geral Financeira</h2>
-                    <p class="text-slate-600">Esta seção apresenta os indicadores chave de desempenho (KPIs) do seu negócio.</p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="stat-card col-span-1 md:col-span-2 lg:col-span-1 bg-white p-6 rounded-xl shadow-md border-l-4 border-sky-400">
-                        <h3 class="text-slate-500 text-lg font-medium">LUCRO LÍQUIDO A DIVIDIR</h3>
-                        <p id="netProfit" class="text-4xl font-bold text-slate-900 mt-2">R$ 0,00</p>
-                    </div>
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (Real)</h3>
-                        <p id="cashBalance" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
-                    </div>
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-slate-500 text-lg font-medium">Previsão a Receber</h3>
-                        <p id="forecastedRevenue" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento para Divisão</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <p class="text-slate-500">Receita Confirmada (Período)</p>
-                                <p id="confirmedRevenue" class="text-2xl font-bold text-green-600">R$ 0,00</p>
-                            </div>
-                            <div>
-                                <p class="text-slate-500">Despesas do Condomínio</p>
-                                <p id="condominiumExpenses" class="text-2xl font-bold text-red-600">R$ 0,00</p>
-                            </div>
-                            <div class="md:col-span-2 border-t pt-4 mt-4">
-                                <h4 class="text-lg font-semibold text-slate-700 mb-4">Acerto de Contas</h4>
-                                <div class="space-y-4">
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-medium text-slate-800">Valor Final a Receber (Arthur)</span>
-                                        <span id="arthurFinalPayout" class="text-xl font-bold text-sky-600">R$ 0,00</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-medium text-slate-800">Valor Final a Receber (Lucas)</span>
-                                        <span id="lucasFinalPayout" class="text-xl font-bold text-sky-600">R$ 0,00</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Composição Financeira</h3>
-                        <div class="chart-container">
-                            <canvas id="financialCompositionChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="calendar-tab" class="tab-content">
-                 <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-slate-800 mb-1">Calendário de Ocupação</h2>
-                    <p class="text-slate-600">Visualize e gerencie todas as reservas confirmadas.</p>
-                </div>
-                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-bold">Junho 2025</h3>
-                        <div>
-                             <button class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors" onclick="openReservationModal()">
-                                <i class="fas fa-plus mr-2"></i>Nova Reserva
-                            </button>
-                        </div>
-                    </div>
-                    <div class="calendar-grid grid border-t border-l border-slate-200">
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Dom</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Seg</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Ter</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Qua</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Qui</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Sex</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Sáb</div>
-                        </div>
-                </div>
-            </div>
-
             <div id="transactions-tab" class="tab-content">
                 <div class="mb-8">
                     <h2 class="text-2xl font-semibold text-slate-800 mb-1">Histórico de Lançamentos</h2>
-                     <p class="text-slate-600">Detalhes de cada movimento financeiro registrado.</p>
+                    <p class="text-slate-600">Esta tabela detalha cada movimento financeiro registrado, funcionando como o livro-razão completo do seu negócio.</p>
                 </div>
-                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                     <div class="flex justify-end mb-4 gap-2">
-                        <button class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors" onclick="openTransactionModal('revenue')">
-                            <i class="fas fa-plus mr-2"></i>Receita Avulsa
-                        </button>
-                        <button class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors" onclick="openTransactionModal('expense')">
-                            <i class="fas fa-minus mr-2"></i>Nova Despesa
-                        </button>
-                     </div>
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                    <div class="flex justify-end mb-4 gap-2">
+                        <button onclick="openTransactionModal('revenue')" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"><i class="fas fa-plus mr-2"></i>Receita Avulsa</button>
+                        <button onclick="openTransactionModal('expense')" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"><i class="fas fa-minus mr-2"></i>Nova Despesa</button>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 text-slate-600">
@@ -180,32 +84,29 @@
                     </div>
                 </div>
             </div>
-            
-            <div id="architecture-tab" class="tab-content">
-                <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-slate-800 mb-1">Visualização da Arquitetura</h2>
-                    <p class="text-slate-600">Diagrama visual do fluxo de dados do sistema.</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Fluxo de Dados: Registro de Pagamento</h3>
-                    <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
-                        <div class="flex flex-col items-center w-full md:w-1/4"><div class="bg-sky-100 border-2 border-sky-400 p-4 rounded-lg w-full"><i class="fas fa-mouse-pointer text-3xl text-sky-600 mb-2"></i><h4 class="font-bold">1. Ação do Usuário</h4><p class="text-sm">Usuário clica em "Registrar Pagamento".</p></div></div>
-                        <i class="fas fa-arrow-down md:fa-arrow-right text-2xl text-slate-400"></i>
-                        <div class="flex flex-col items-center w-full md:w-1/4"><div class="bg-purple-100 border-2 border-purple-400 p-4 rounded-lg w-full"><i class="fas fa-cogs text-3xl text-purple-600 mb-2"></i><h4 class="font-bold">2. Cloud Function</h4><p class="text-sm">Interface invoca função segura no backend.</p></div></div>
-                        <i class="fas fa-arrow-down md:fa-arrow-right text-2xl text-slate-400"></i>
-                        <div class="flex flex-col items-center w-full md:w-1/3"><div class="bg-amber-100 border-2 border-amber-400 p-4 rounded-lg w-full"><i class="fas fa-database text-3xl text-amber-600 mb-2"></i><h4 class="font-bold">3. Transação no BD</h4><p class="text-sm">Função escreve no Firestore de forma atômica.</p></div></div>
-                        <i class="fas fa-arrow-down md:fa-arrow-right text-2xl text-slate-400"></i>
-                        <div class="flex flex-col items-center w-full md:w-1/4"><div class="bg-green-100 border-2 border-green-400 p-4 rounded-lg w-full"><i class="fas fa-desktop text-3xl text-green-600 mb-2"></i><h4 class="font-bold">4. UI Atualiza</h4><p class="text-sm">Dashboard e Calendário atualizam em tempo real.</p></div></div>
-                    </div>
-                </div>
-            </div>
+            <div id="dashboard-tab" class="tab-content active"></div>
+            <div id="calendar-tab" class="tab-content"></div>
+            <div id="architecture-tab" class="tab-content"></div>
         </main>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="app.js"></script>
-</body>
-</html>
+    <div id="transaction-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4">
+            <h2 id="transaction-modal-title" class="text-2xl font-bold mb-4">Novo Lançamento</h2>
+            <form id="transaction-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="trans-desc" class="block text-sm font-medium text-slate-700">Descrição</label>
+                        <input type="text" id="trans-desc" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                    </div>
+                    <div>
+                        <label for="trans-amount" class="block text-sm font-medium text-slate-700">Valor (R$)</label>
+                        <input type="number" step="0.01" id="trans-amount" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                    </div>
+                    <div id="category-wrapper">
+                        <label for="trans-category" class="block text-sm font-medium text-slate-700">Categoria</label>
+                        <select id="trans-category" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                            <option>Condomínio</option>
+                            <option>Pessoal - Arthur</option>
+                            <option>Pessoal - Lucas</option>
+                        </select

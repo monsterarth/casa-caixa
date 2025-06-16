@@ -23,12 +23,15 @@ const logoutButton = document.getElementById('logout-button');
 const welcomeMessage = document.getElementById('welcome-message');
 const userEmail = document.getElementById('user-email');
 
+// Modal de Transação
+const transactionModal = document.getElementById('transaction-modal');
+const transactionForm = document.getElementById('transaction-form');
+const transactionModalTitle = document.getElementById('transaction-modal-title');
+const categoryWrapper = document.getElementById('category-wrapper');
+const transactionSubmitButton = document.getElementById('transaction-submit-button');
 
 // --- LÓGICA DE AUTENTICAÇÃO ---
-loginButton.addEventListener('click', () => {
-    auth.signInWithPopup(provider).catch(error => console.error("Erro no login:", error));
-});
-
+loginButton.addEventListener('click', () => auth.signInWithPopup(provider).catch(error => console.error("Erro no login:", error)));
 logoutButton.addEventListener('click', () => auth.signOut());
 
 auth.onAuthStateChanged(user => {
@@ -36,7 +39,7 @@ auth.onAuthStateChanged(user => {
         loginContainer.classList.add('hidden');
         appContainer.classList.remove('hidden');
         const firstName = user.displayName.split(' ')[0];
-        welcomeMessage.textContent = `Bem-vindo(a), ${firstName}. Aqui está o resumo do seu negócio.`;
+        welcomeMessage.textContent = `Bem-vindo(a), ${firstName}.`;
         userEmail.textContent = user.email;
         initializeApp();
     } else {
@@ -45,69 +48,53 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-
 // --- LÓGICA PRINCIPAL DO APP ---
-async function initializeApp() {
-    await seedDatabaseIfNeeded(); // <--- NOVO: Semeia o BD antes de tudo
+function initializeApp() {
     listenForTransactions();
-    renderDashboard();
-    renderCalendar();
-    renderFinancialChart();
+    setupEventListeners();
+    // Funções com dados mock que serão substituídas
+    // renderDashboard();
+    // renderCalendar();
+    // renderFinancialChart();
 }
 
-// --- NOVO: Função para criar dados iniciais no Firestore ---
-async function seedDatabaseIfNeeded() {
-    const transactionsRef = db.collection('financial_transactions');
-    const snapshot = await transactionsRef.get();
+function setupEventListeners() {
+    transactionForm.addEventListener('submit', handleAddTransaction);
+}
 
-    if (snapshot.empty) {
-        console.log("Banco de dados de lançamentos vazio. Semeando com dados iniciais...");
-        const batch = db.batch(); // Usamos um 'batch' para salvar tudo de uma vez
-
-        const MOCK_TRANSACTIONS_TO_SEED = [
-            { description: 'Pagamento Final - Reserva Família Silva', amount: 3000, category: 'Receita de Reserva', type: 'revenue', date: new Date('2025-06-05') },
-            { description: 'Pagamento Sinal - Reserva Casal Martins', amount: 2250, category: 'Receita de Reserva', type: 'revenue', date: new Date('2025-06-01') },
-            { description: 'Pagamento conta de luz', amount: -850, category: 'Condomínio', type: 'expense', date: new Date('2025-06-10') },
-            { description: 'Manutenção Piscina', amount: -450, category: 'Condomínio', type: 'expense', date: new Date('2025-06-03') },
-        ];
-        
-        MOCK_TRANSACTIONS_TO_SEED.forEach(tx => {
-            const docRef = transactionsRef.doc(); // Cria uma referência para um novo documento
-            const dataWithTimestamp = {
-                ...tx,
-                date: firebase.firestore.Timestamp.fromDate(tx.date) // Converte a data para o formato do Firestore
-            };
-            batch.set(docRef, dataWithTimestamp);
-        });
-
-        await batch.commit(); // Envia todos os dados para o Firebase
-        console.log("Semeação concluída!");
-    } else {
-        console.log("Banco de dados de lançamentos já contém dados.");
+// --- LÓGICA DE TRANSAÇÕES (Adicionar/Listar) ---
+async function handleAddTransaction(event) {
+    event.preventDefault(); // Impede o recarregamento da página
+    
+    const type = transactionForm.dataset.type;
+    const description = document.getElementById('trans-desc').value;
+    const amount = parseFloat(document.getElementById('trans-amount').value);
+    
+    if (!description || isNaN(amount)) {
+        alert("Por favor, preencha a descrição e um valor válido.");
+        return;
     }
-}
 
+    const transactionData = {
+        description: description,
+        amount: type === 'expense' ? -Math.abs(amount) : Math.abs(amount),
+        type: type,
+        date: firebase.firestore.Timestamp.now(),
+    };
 
-// --- DADOS MOCK (Serão removidos aos poucos) ---
-const MOCK_DASHBOARD_DATA = { /* ... mantido por enquanto ... */ };
-const MOCK_RESERVATIONS = [ /* ... mantido por enquanto ... */ ];
-const MOCK_PROPERTIES = { /* ... mantido por enquanto ... */ };
+    if (type === 'expense') {
+        transactionData.category = document.getElementById('trans-category').value;
+    } else {
+        transactionData.category = 'Receita Avulsa';
+    }
 
-
-// --- NAVEGAÇÃO POR ABAS ---
-let currentTab = 'dashboard';
-function showTab(tabId) {
-    document.querySelector('.tab-button.active').classList.remove('active');
-    document.querySelector(`#${currentTab}-tab`).classList.remove('active');
-    document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
-    document.querySelector(`#${tabId}-tab`).classList.add('active');
-    currentTab = tabId;
-}
-
-
-// --- FUNÇÕES DE RENDERIZAÇÃO ---
-function formatCurrency(value) {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    try {
+        await db.collection('financial_transactions').add(transactionData);
+        closeModal('transaction-modal');
+    } catch (error) {
+        console.error("Erro ao adicionar transação: ", error);
+        alert("Não foi possível salvar o lançamento. Tente novamente.");
+    }
 }
 
 function listenForTransactions() {
@@ -126,7 +113,7 @@ function listenForTransactions() {
             const row = `
                 <tr>
                     <td class="p-3">${tx.description}</td>
-                    <td class="p-3 font-medium ${isRevenue ? 'text-green-600' : 'text-red-600'}">${isRevenue ? '+' : ''} ${formatCurrency(Math.abs(tx.amount))}</td>
+                    <td class="p-3 font-medium ${isRevenue ? 'text-green-600' : 'text-red-600'}">${isRevenue ? '+' : ''} ${formatCurrency(tx.amount)}</td>
                     <td class="p-3 text-slate-600">${tx.category}</td>
                     <td class="p-3 text-slate-600">${date}</td>
                 </tr>
@@ -139,66 +126,50 @@ function listenForTransactions() {
     });
 }
 
-// Funções com dados mock (inalteradas por enquanto)
-function renderDashboard() { /* ...código inalterado... */ }
-function renderCalendar() { /* ...código inalterado... */ }
-function renderFinancialChart() { /* ...código inalterado... */ }
-function openReservationModal(id = null) { alert('Funcionalidade de modal a ser implementada.'); }
-function openTransactionModal(type) { alert('Funcionalidade de modal a ser implementada.'); }
+// --- CONTROLES DE MODAL ---
+function openTransactionModal(type) {
+    transactionForm.reset(); // Limpa o formulário
+    transactionForm.dataset.type = type; // Guarda o tipo ('expense' ou 'revenue')
 
-// Copiando as funções que estavam faltando no último trecho para garantir que tudo funcione
-renderDashboard.toString = () => {
-    const data = MOCK_DASHBOARD_DATA;
-    document.getElementById('netProfit').textContent = formatCurrency(data.netProfitToDivide);
-    document.getElementById('cashBalance').textContent = formatCurrency(data.cashBalance);
-    document.getElementById('forecastedRevenue').textContent = formatCurrency(data.forecastedRevenue);
-    document.getElementById('confirmedRevenue').textContent = formatCurrency(data.confirmedRevenue_currentPeriod);
-    document.getElementById('condominiumExpenses').textContent = formatCurrency(Math.abs(data.condominiumExpenses));
-    document.getElementById('arthurFinalPayout').textContent = formatCurrency(data.arthurFinalPayout);
-    document.getElementById('lucasFinalPayout').textContent = formatCurrency(data.lucasFinalPayout);
-}
-renderCalendar.toString = () => {
-    const calendarGrid = document.querySelector('.calendar-grid');
-    const headers = calendarGrid.querySelector('.text-center.font-bold')?.parentNode.innerHTML || '';
-    calendarGrid.innerHTML = headers;
-
-    const year = 2025; const month = 5;
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    for (let i = 0; i < firstDay; i++) calendarGrid.insertAdjacentHTML('beforeend', '<div class="calendar-day border-r border-b border-slate-200 p-2"></div>');
-    for (let day = 1; day <= daysInMonth; day++) {
-        let dayHtml = `<div class="calendar-day border-r border-b border-slate-200 p-2 overflow-hidden relative"><span class="font-medium text-slate-700">${day}</span><div class="space-y-1 mt-1">`;
-        const currentDate = new Date(year, month, day);
-        MOCK_RESERVATIONS.forEach(res => {
-            if (currentDate >= res.startDate && currentDate <= res.endDate) {
-                const prop = MOCK_PROPERTIES[res.propertyId];
-                dayHtml += `<div onclick="openReservationModal(${res.id})" class="calendar-event ${prop.color} ${prop.textColor} p-1 rounded-md text-xs truncate">${res.guestName}</div>`;
-            }
-        });
-        dayHtml += `</div></div>`;
-        calendarGrid.insertAdjacentHTML('beforeend', dayHtml);
+    if (type === 'expense') {
+        transactionModalTitle.textContent = 'Nova Despesa';
+        categoryWrapper.classList.remove('hidden');
+        transactionSubmitButton.className = "bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors";
+        transactionSubmitButton.textContent = "Adicionar Despesa";
+    } else {
+        transactionModalTitle.textContent = 'Nova Receita Avulsa';
+        categoryWrapper.classList.add('hidden');
+        transactionSubmitButton.className = "bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors";
+        transactionSubmitButton.textContent = "Adicionar Receita";
     }
+
+    transactionModal.classList.remove('hidden');
 }
-renderFinancialChart.toString = () => {
-    const ctx = document.getElementById('financialCompositionChart').getContext('2d');
-    if (window.myFinancialChart) window.myFinancialChart.destroy();
-    window.myFinancialChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Receita Confirmada', 'Despesas Condomínio'],
-            datasets: [{
-                data: [MOCK_DASHBOARD_DATA.confirmedRevenue_currentPeriod, Math.abs(MOCK_DASHBOARD_DATA.condominiumExpenses)],
-                backgroundColor: ['#22c55e', '#ef4444'],
-                borderColor: '#f0f4f8',
-                borderWidth: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            cutout: '70%'
-        }
-    });
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
 }
+
+// --- FUNÇÕES DE NAVEGAÇÃO E UTILITÁRIOS ---
+function formatCurrency(value) {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+let currentTab = 'transactions'; // Mudei a aba inicial para a que estamos trabalhando
+function showTab(tabId) {
+    // Esconde todas as abas
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    // Desativa todos os botões
+    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+    
+    // Ativa a aba e o botão corretos
+    document.querySelector(`#${tabId}-tab`).classList.add('active');
+    document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+    
+    currentTab = tabId;
+}
+
+// Força a aba de transações a ser a primeira a ser exibida
+document.addEventListener('DOMContentLoaded', () => {
+    showTab('transactions');
+});
