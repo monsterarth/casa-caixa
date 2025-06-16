@@ -299,7 +299,8 @@ async function handleSaveTransaction(event) {
         amount: amount,
         date: firebase.firestore.Timestamp.fromDate(new Date(form['tx-date'].value + 'T00:00:00')),
         type: type,
-        category: type === 'expense' ? form['tx-category'].value : 'Receita Avulsa'
+        category: type === 'expense' ? form['tx-category'].value : 'Receita Avulsa',
+        status: 'active'
     };
 
     try {
