@@ -57,7 +57,6 @@
             <button class="tab-button active text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('dashboard')"><i class="fas fa-chart-pie mr-2"></i>Dashboard</button>
             <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('calendar')"><i class="fas fa-calendar-alt mr-2"></i>Calendário</button>
             <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('transactions')"><i class="fas fa-exchange-alt mr-2"></i>Lançamentos</button>
-            <button class="tab-button text-sm md:text-base font-medium py-2 px-4 rounded-lg bg-white shadow-sm" onclick="showTab('architecture')"><i class="fas fa-sitemap mr-2"></i>Arquitetura</button>
         </nav>
 
         <main>
@@ -65,8 +64,9 @@
             <div id="dashboard-tab" class="tab-content active">
                 <div class="mb-8">
                     <h2 class="text-2xl font-semibold text-slate-800 mb-1">Visão Geral Financeira</h2>
-                    <p class="text-slate-600">Indicadores chave de desempenho (KPIs) do seu negócio.</p>
+                    <p class="text-slate-600">Indicadores chave de desempenho (KPIs) do seu negócio, calculados em tempo real.</p>
                 </div>
+                <!-- KPIs Principais -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div class="stat-card col-span-1 md:col-span-2 lg:col-span-1 bg-white p-6 rounded-xl shadow-md border-l-4 border-sky-400">
                         <h3 class="text-slate-500 text-lg font-medium">LUCRO LÍQUIDO A DIVIDIR</h3>
@@ -81,39 +81,54 @@
                         <p id="forecastedRevenue" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
                     </div>
                 </div>
-            </div>
-
-            <!-- Calendar Tab -->
-            <div id="calendar-tab" class="tab-content">
-                 <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-slate-800 mb-1">Calendário de Ocupação</h2>
-                </div>
-                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-bold">Junho 2025</h3>
-                        <div><button class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors"><i class="fas fa-plus mr-2"></i>Nova Reserva</button></div>
+                <!-- Detalhamento e Gráfico -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento para Divisão</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <p class="text-slate-500">Receita Confirmada (Período)</p>
+                                <p id="confirmedRevenue" class="text-2xl font-bold text-green-600">R$ 0,00</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500">Despesas do Condomínio</p>
+                                <p id="condominiumExpenses" class="text-2xl font-bold text-red-600">R$ 0,00</p>
+                            </div>
+                            <div class="md:col-span-2 border-t pt-4 mt-4">
+                                <h4 class="text-lg font-semibold text-slate-700 mb-4">Acerto de Contas</h4>
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-medium text-slate-800">Valor Final a Receber (Arthur)</span>
+                                        <span id="arthurFinalPayout" class="text-xl font-bold text-sky-600">R$ 0,00</span>
+                                    </div>
+                                    <div class="text-right text-sm text-slate-500">(<span id="arthurShare">R$ 0,00</span> de 50% - <span id="arthurPersonalExpenses">R$ 0,00</span> de despesas)</div>
+                                    <div class="flex justify-between items-center mt-2">
+                                        <span class="font-medium text-slate-800">Valor Final a Receber (Lucas)</span>
+                                        <span id="lucasFinalPayout" class="text-xl font-bold text-sky-600">R$ 0,00</span>
+                                    </div>
+                                    <div class="text-right text-sm text-slate-500">(<span id="lucasShare">R$ 0,00</span> de 50% - <span id="lucasPersonalExpenses">R$ 0,00</span> de despesas)</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="calendar-grid grid border-t border-l border-slate-200">
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Dom</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Seg</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Ter</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Qua</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Qui</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Sex</div>
-                        <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Sáb</div>
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Composição Financeira</h3>
+                        <div class="chart-container">
+                            <canvas id="financialCompositionChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Transactions Tab -->
             <div id="transactions-tab" class="tab-content">
-                <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-slate-800 mb-1">Histórico de Lançamentos</h2>
-                </div>
                  <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                     <div class="flex justify-end mb-4 gap-2">
-                        <button onclick="openTransactionModal('revenue')" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"><i class="fas fa-plus mr-2"></i>Receita Avulsa</button>
-                        <button onclick="openTransactionModal('expense')" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"><i class="fas fa-minus mr-2"></i>Nova Despesa</button>
+                     <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-slate-800">Histórico de Lançamentos</h2>
+                        <div class="flex gap-2">
+                            <button onclick="openTransactionModal('revenue')" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"><i class="fas fa-plus mr-2"></i>Receita Avulsa</button>
+                            <button onclick="openTransactionModal('expense')" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"><i class="fas fa-minus mr-2"></i>Nova Despesa</button>
+                        </div>
                      </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
@@ -131,13 +146,8 @@
                 </div>
             </div>
             
-            <!-- Architecture Tab -->
-            <div id="architecture-tab" class="tab-content">
-                <div class="mb-8"><h2 class="text-2xl font-semibold text-slate-800 mb-1">Visualização da Arquitetura</h2></div>
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Fluxo de Dados: Registro de Pagamento</h3>
-                </div>
-            </div>
+            <!-- Calendar Tab (Placeholder) -->
+            <div id="calendar-tab" class="tab-content"></div>
         </main>
     </div>
 
