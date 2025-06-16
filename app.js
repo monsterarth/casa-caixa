@@ -101,11 +101,15 @@ function updateAllUI() {
 
 function updateDashboardUI(financials, forecast) {
     const el = id => document.getElementById(id);
+
+    // Cards Principais
+    el('fundoCaixa').textContent = formatCurrency(financials.fundoCaixa);
     el('cashBalance').textContent = formatCurrency(financials.cashBalance);
-    el('netProfit').textContent = formatCurrency(financials.netProfitToDivide);
+    el('forecast').textContent = formatCurrency(forecast);
+
+    // Detalhamento
     el('confirmedRevenue').textContent = formatCurrency(financials.confirmedRevenue);
     el('condominiumExpenses').textContent = formatCurrency(financials.condominiumExpenses * -1);
-    el('forecast').textContent = formatCurrency(forecast);
 }
 
 function updateFinancialChart(financials) {
