@@ -14,10 +14,24 @@
         .tab-button.active { background-color: #38bdf8; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .stat-card { transition: all 0.3s ease; }
         .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
         .calendar-day { min-height: 120px; cursor: pointer; }
+        .input-style {
+            margin-top: 0.25rem;
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+        .input-style:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #38bdf8;
+            border-color: #38bdf8;
+        }
     </style>
 </head>
 <body class="text-slate-800">
@@ -29,14 +43,8 @@
     <div id="app" class="container mx-auto p-4 md:p-8 hidden">
         <header class="mb-8">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                <div>
-                    <h1 class="text-3xl font-bold text-slate-900">Gestor de Propriedades</h1>
-                    <p id="welcome-message" class="text-slate-600 mt-1">Bem-vindo(a).</p>
-                </div>
-                <div class="flex items-center gap-4 text-sm text-slate-500 mt-4 md:mt-0">
-                    <span id="user-email"></span>
-                    <button id="logout-button" class="text-red-500 hover:text-red-700 font-medium"><i class="fas fa-sign-out-alt mr-1"></i>Sair</button>
-                </div>
+                <div><h1 class="text-3xl font-bold text-slate-900">Gestor de Propriedades</h1><p id="welcome-message" class="text-slate-600 mt-1">Bem-vindo(a).</p></div>
+                <div class="flex items-center gap-4 text-sm text-slate-500 mt-4 md:mt-0"><span id="user-email"></span><button id="logout-button" class="text-red-500 hover:text-red-700 font-medium"><i class="fas fa-sign-out-alt mr-1"></i>Sair</button></div>
             </div>
         </header>
 
@@ -45,6 +53,8 @@
             <button class="tab-button" onclick="showTab('calendar')"><i class="fas fa-calendar-alt mr-2"></i>Calendário</button>
             <button class="tab-button" onclick="showTab('reservations')"><i class="fas fa-list-check mr-2"></i>Reservas</button>
             <button class="tab-button" onclick="showTab('transactions')"><i class="fas fa-exchange-alt mr-2"></i>Lançamentos</button>
+            <button class="tab-button" onclick="showTab('settlement')"><i class="fas fa-handshake mr-2"></i>Acerto de Contas</button>
+            <button class="tab-button" onclick="showTab('settings')"><i class="fas fa-cog mr-2"></i>Configurações</button>
         </nav>
 
         <main>
@@ -128,8 +138,7 @@
                                     <th class="p-3 text-right">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="reservations-table-body" class="divide-y divide-slate-200">
-                                </tbody>
+                            <tbody id="reservations-table-body" class="divide-y divide-slate-200"></tbody>
                         </table>
                     </div>
                 </div>
@@ -150,6 +159,55 @@
                             <tbody id="transactions-table-body" class="divide-y divide-slate-200"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <div id="settlement-tab" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-4">Sócio: Arthur</h2>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center"><span class="text-slate-600">Cota do Lucro (Teórica):</span><span id="arthur-share" class="font-bold text-lg">R$ 0,00</span></div>
+                            <div class="flex justify-between items-center"><span class="text-slate-600">Despesas Pessoais (Adiantado):</span><span id="arthur-expenses" class="font-bold text-lg text-red-500">R$ 0,00</span></div>
+                            <hr class="my-4">
+                            <div class="flex justify-between items-center text-xl"><span class="font-semibold text-slate-800">Saldo a Receber (Final):</span><span id="arthur-balance" class="font-bold text-green-600">R$ 0,00</span></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-4">Sócio: Lucas</h2>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center"><span class="text-slate-600">Cota do Lucro (Teórica):</span><span id="lucas-share" class="font-bold text-lg">R$ 0,00</span></div>
+                            <div class="flex justify-between items-center"><span class="text-slate-600">Despesas Pessoais (Adiantado):</span><span id="lucas-expenses" class="font-bold text-lg text-red-500">R$ 0,00</span></div>
+                            <hr class="my-4">
+                            <div class="flex justify-between items-center text-xl"><span class="font-semibold text-slate-800">Saldo a Receber (Final):</span><span id="lucas-balance" class="font-bold text-green-600">R$ 0,00</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <div class="bg-white p-6 rounded-xl shadow-md max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-semibold text-slate-800 mb-6">Configurações Financeiras</h2>
+                    <form id="settings-form">
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-medium text-slate-700 border-b pb-2">Divisão do Faturamento (%)</h3>
+                            <p class="text-sm text-slate-500">Defina como cada R$ 100 de receita é dividido. A soma deve ser 100%.</p>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div><label for="setting-share-arthur" class="block text-sm font-medium">Arthur</label><input type="number" step="0.01" id="setting-share-arthur" class="input-style"></div>
+                                <div><label for="setting-share-lucas" class="block text-sm font-medium">Lucas</label><input type="number" step="0.01" id="setting-share-lucas" class="input-style"></div>
+                                <div><label for="setting-share-caixa" class="block text-sm font-medium">Fundo de Caixa</label><input type="number" step="0.01" id="setting-share-caixa" class="input-style"></div>
+                            </div>
+                             <h3 class="text-lg font-medium text-slate-700 border-b pb-2 pt-4">Segurança</h3>
+                            <div>
+                                <label for="setting-reserve-fund" class="block text-sm font-medium">Fundo de Reserva Fixo (R$)</label>
+                                <p class="text-sm text-slate-500">Valor mínimo que deve ser mantido no caixa para emergências.</p>
+                                <input type="number" step="100" id="setting-reserve-fund" class="input-style">
+                            </div>
+                        </div>
+                        <div class="flex justify-end mt-8">
+                            <button type="submit" class="bg-sky-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-sky-600">Salvar Configurações</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </main>
@@ -177,13 +235,13 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label for="res-status" class="block text-sm font-medium text-slate-700">Status</label>
-                            <select id="res-status" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                            <select id="res-status" required class="input-style">
                                 <option value="Pré-reserva">Pré-reserva</option><option value="Confirmada">Confirmada</option><option value="Em andamento">Em andamento</option><option value="Finalizada">Finalizada</option><option value="Cancelada">Cancelada</option><option value="No show">No show</option><option value="Arquivada">Arquivada</option><option value="Excluida">Excluída</option>
                             </select>
                         </div>
                         <div>
                             <label for="res-source-platform" class="block text-sm font-medium text-slate-700">Plataforma</label>
-                            <select id="res-source-platform" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                            <select id="res-source-platform" required class="input-style">
                                 <option value="Direto">Direto</option>
                                 <option value="Airbnb">Airbnb</option>
                                 <option value="Booking">Booking</option>
@@ -191,14 +249,13 @@
                             </select>
                         </div>
                     </div>
-
-                    <div><label for="res-guest-name" class="block text-sm font-medium text-slate-700">Nome do Hóspede</label><input type="text" id="res-guest-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
-                    <div><label for="res-property" class="block text-sm font-medium text-slate-700">Propriedade</label><select id="res-property" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"><option value="estancia_do_vale">Estância do Vale</option><option value="vale_do_sabia">Vale do Sabiá</option></select></div>
+                    <div><label for="res-guest-name" class="block text-sm font-medium text-slate-700">Nome do Hóspede</label><input type="text" id="res-guest-name" required class="input-style"></div>
+                    <div><label for="res-property" class="block text-sm font-medium text-slate-700">Propriedade</label><select id="res-property" required class="input-style"><option value="estancia_do_vale">Estância do Vale</option><option value="vale_do_sabia">Vale do Sabiá</option></select></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label for="res-start-date" class="block text-sm font-medium text-slate-700">Data de Entrada</label><input type="date" id="res-start-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
-                        <div><label for="res-end-date" class="block text-sm font-medium text-slate-700">Data de Saída</label><input type="date" id="res-end-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                        <div><label for="res-start-date" class="block text-sm font-medium text-slate-700">Data de Entrada</label><input type="date" id="res-start-date" required class="input-style"></div>
+                        <div><label for="res-end-date" class="block text-sm font-medium text-slate-700">Data de Saída</label><input type="date" id="res-end-date" required class="input-style"></div>
                     </div>
-                    <div><label for="res-total-value" class="block text-sm font-medium text-slate-700">Valor Total da Reserva (R$)</label><input type="number" step="0.01" id="res-total-value" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                    <div><label for="res-total-value" class="block text-sm font-medium text-slate-700">Valor Total (R$)</label><input type="number" step="0.01" id="res-total-value" required class="input-style"></div>
                 </div>
                 <div class="flex justify-end gap-2 mt-8">
                     <button type="button" onclick="closeModal('reservation-modal')" class="text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100">Cancelar</button>
@@ -216,7 +273,7 @@
                 <p class="mb-4">Registrando pagamento para a reserva de <strong id="payment-guest-name"></strong>.</p>
                 <div>
                     <label for="payment-amount" class="block text-sm font-medium text-slate-700">Valor do Pagamento (R$)</label>
-                    <input type="number" step="0.01" id="payment-amount" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                    <input type="number" step="0.01" id="payment-amount" required class="input-style">
                 </div>
                 <div class="flex justify-end gap-2 mt-8">
                     <button type="button" onclick="closeModal('payment-modal')" class="text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100">Cancelar</button>
@@ -232,25 +289,13 @@
             <form id="transaction-form">
                 <input type="hidden" id="transaction-type">
                 <div class="space-y-4">
-                    <div>
-                        <label for="tx-description" class="block text-sm font-medium text-slate-700">Descrição</label>
-                        <input type="text" id="tx-description" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                    </div>
-                    <div>
-                        <label for="tx-amount" class="block text-sm font-medium text-slate-700">Valor (R$)</label>
-                        <input type="number" step="0.01" id="tx-amount" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                    </div>
-                    <div>
-                        <label for="tx-date" class="block text-sm font-medium text-slate-700">Data</label>
-                        <input type="date" id="tx-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                    </div>
+                    <div><label for="tx-description" class="block text-sm font-medium text-slate-700">Descrição</label><input type="text" id="tx-description" required class="input-style"></div>
+                    <div><label for="tx-amount" class="block text-sm font-medium text-slate-700">Valor (R$)</label><input type="number" step="0.01" id="tx-amount" required class="input-style"></div>
+                    <div><label for="tx-date" class="block text-sm font-medium text-slate-700">Data</label><input type="date" id="tx-date" required class="input-style"></div>
                     <div id="category-wrapper">
                         <label for="tx-category" class="block text-sm font-medium text-slate-700">Categoria da Despesa</label>
-                        <select id="tx-category" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                            <option value="Condomínio">Condomínio</option>
-                            <option value="Pessoal - Arthur">Pessoal - Arthur</option>
-                            <option value="Pessoal - Lucas">Pessoal - Lucas</option>
-                            <option value="Outras">Outras</option>
+                        <select id="tx-category" required class="input-style">
+                            <option value="Condomínio">Condomínio</option><option value="Pessoal - Arthur">Pessoal - Arthur</option><option value="Pessoal - Lucas">Pessoal - Lucas</option><option value="Outras">Outras</option>
                         </select>
                     </div>
                 </div>

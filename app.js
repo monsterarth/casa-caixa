@@ -19,10 +19,11 @@ const provider = new firebase.auth.GoogleAuthProvider();
 let currentDate = new Date();
 let reservations = [];
 let transactions = [];
+let settings = {}; // Novo estado para configurações
 let financialChart = null;
-
 const statusColors = {'Pré-reserva': 'bg-yellow-400 text-yellow-800','Confirmada': 'bg-sky-500 text-white','Em andamento': 'bg-blue-600 text-white','Finalizada': 'bg-green-500 text-white','Cancelada': 'bg-red-500 text-white','No show': 'bg-purple-500 text-white','Arquivada': 'bg-slate-500 text-white','Excluida': 'bg-gray-700 text-white'};
 
+// --- PONTO DE ENTRADA E EVENTOS ---
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         const loginContainer = document.getElementById('login-container');
@@ -55,6 +56,7 @@ function setupEventListeners() {
     document.getElementById('reservation-form').addEventListener('submit', handleAddOrUpdateReservation);
     document.getElementById('payment-form').addEventListener('submit', handleRegisterPayment);
     document.getElementById('transaction-form').addEventListener('submit', handleSaveTransaction);
+    document.getElementById('settings-form').addEventListener('submit', handleSaveSettings);
 }
 
 function navigateMonth(direction) {
@@ -63,6 +65,14 @@ function navigateMonth(direction) {
 }
 
 function listenForData() {
+    db.collection('settings').doc('main').onSnapshot(doc => {
+        if (doc.exists) {
+            settings = doc.data();
+            populateSettingsForm();
+            updateAllUI();
+        }
+    }, console.error);
+
     db.collection('financial_transactions').where('status', '==', 'active').orderBy('date', 'desc').onSnapshot(snapshot => {
         transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         updateAllUI();
@@ -76,63 +86,81 @@ function listenForData() {
     }, console.error);
 }
 
+// --- FUNÇÕES DE ATUALIZAÇÃO DE UI ---
 function updateAllUI() {
-    const activeReservations = reservations.filter(res => res.status !== 'Excluida');
-    const financialSummary = calculateFinancialSummary(transactions);
-    const forecast = calculateForecast(activeReservations);
+    const financials = calculateAllFinancials();
+    if (Object.keys(financials).length === 0) return;
+
+    const forecast = calculateForecast(reservations);
     
-    updateDashboardUI(financialSummary, forecast);
-    updateFinancialChart(financialSummary);
+    updateDashboardUI(financials, forecast);
+    updateFinancialChart(financials);
     renderTransactionsTable(transactions);
+    renderSettlementTab(financials);
 }
 
-// --- LÓGICA FINANCEIRA ---
-function calculateFinancialSummary(allTransactions) {
-    const summary = { confirmedRevenue: 0, condominiumExpenses: 0, totalExpenses: 0 };
-    allTransactions.forEach(tx => {
-        const amount = Math.abs(tx.amount);
-        if (tx.type === 'revenue') summary.confirmedRevenue += amount;
-        else if (tx.type === 'expense') {
-            summary.totalExpenses += amount;
-            if (tx.category === 'Condomínio') summary.condominiumExpenses += amount;
-        }
-    });
-    return { ...summary, cashBalance: summary.confirmedRevenue - summary.totalExpenses, netProfitToDivide: summary.confirmedRevenue - summary.condominiumExpenses };
-}
-
-function calculateForecast(allReservations) {
-    // 1. Saldo devedor de reservas diretas
-    const directForecast = allReservations
-        .filter(res => res.sourcePlatform === 'Direto' && ['Confirmada', 'Em andamento', 'Pré-reserva'].includes(res.status))
-        .reduce((total, res) => total + Math.max(0, (res.totalValue || 0) - (res.amountPaid || 0)), 0);
-
-    // 2. Valor total de reservas de plataformas cujo pagamento ainda não foi confirmado no nosso caixa
-    const platformForecast = allReservations
-        .filter(res => res.sourcePlatform === 'Airbnb' && !res.isPayoutConfirmed)
-        .reduce((total, res) => total + (res.totalValue || 0), 0);
-
-    return directForecast + platformForecast;
-}
-
-function updateDashboardUI(summary, forecast) {
+function updateDashboardUI(financials, forecast) {
     const el = id => document.getElementById(id);
-    el('cashBalance').textContent = formatCurrency(summary.cashBalance);
-    el('netProfit').textContent = formatCurrency(summary.netProfitToDivide);
-    el('confirmedRevenue').textContent = formatCurrency(summary.confirmedRevenue);
-    el('condominiumExpenses').textContent = formatCurrency(summary.condominiumExpenses * -1);
+    el('cashBalance').textContent = formatCurrency(financials.cashBalance);
+    el('netProfit').textContent = formatCurrency(financials.netProfitToDivide);
+    el('confirmedRevenue').textContent = formatCurrency(financials.confirmedRevenue);
+    el('condominiumExpenses').textContent = formatCurrency(financials.condominiumExpenses * -1);
     el('forecast').textContent = formatCurrency(forecast);
 }
 
-function updateFinancialChart(summary) {
+function updateFinancialChart(financials) {
     const ctx = document.getElementById('financialCompositionChart')?.getContext('2d'); if (!ctx) return;
     const chartData = {
-        labels: ['Receita Confirmada', 'Despesas Condomínio'],
-        datasets: [{ data: [summary.confirmedRevenue, summary.condominiumExpenses], backgroundColor: ['#22c55e', '#ef4444'], borderColor: '#f0f4f8', borderWidth: 4 }]
+        labels: ['Cota Arthur', 'Cota Lucas', 'Fundo de Caixa', 'Despesas Cond.'],
+        datasets: [{
+            data: [financials.cotaArthur, financials.cotaLucas, financials.fundoCaixa, financials.condominiumExpenses],
+            backgroundColor: ['#38bdf8', '#34d399', '#a78bfa', '#f87171'],
+            borderColor: '#f0f4f8', borderWidth: 4
+        }]
     };
     if (financialChart) { financialChart.data = chartData; financialChart.update(); }
     else { financialChart = new Chart(ctx, { type: 'doughnut', data: chartData, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '70%' } }); }
 }
 
+function renderSettlementTab(financials) {
+    document.getElementById('arthur-share').textContent = formatCurrency(financials.cotaArthur);
+    document.getElementById('arthur-expenses').textContent = formatCurrency(financials.arthurExpenses);
+    document.getElementById('arthur-balance').textContent = formatCurrency(financials.saldoAReceberArthur);
+
+    document.getElementById('lucas-share').textContent = formatCurrency(financials.cotaLucas);
+    document.getElementById('lucas-expenses').textContent = formatCurrency(financials.lucasExpenses);
+    document.getElementById('lucas-balance').textContent = formatCurrency(financials.saldoAReceberLucas);
+}
+
+// --- LÓGICA FINANCEIRA ---
+function calculateAllFinancials() {
+    if (!settings.shareArthur) return {};
+
+    const confirmedRevenue = transactions.filter(t => t.type === 'revenue').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const allExpenses = transactions.filter(t => t.type === 'expense');
+    const totalExpenses = allExpenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const condominiumExpenses = allExpenses.filter(t => t.category === 'Condomínio').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const arthurExpenses = allExpenses.filter(t => t.category === 'Pessoal - Arthur').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const lucasExpenses = allExpenses.filter(t => t.category === 'Pessoal - Lucas').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    const cotaArthur = confirmedRevenue * (settings.shareArthur / 100);
+    const cotaLucas = confirmedRevenue * (settings.shareLucas / 100);
+    const fundoCaixa = confirmedRevenue * (settings.shareFundoCaixa / 100);
+    const saldoAReceberArthur = cotaArthur - arthurExpenses;
+    const saldoAReceberLucas = cotaLucas - lucasExpenses;
+    const cashBalance = confirmedRevenue - totalExpenses;
+    const netProfitToDivide = cotaArthur + cotaLucas - condominiumExpenses;
+
+    return { confirmedRevenue, condominiumExpenses, cashBalance, netProfitToDivide, cotaArthur, cotaLucas, fundoCaixa, arthurExpenses, lucasExpenses, saldoAReceberArthur, saldoAReceberLucas };
+}
+
+function calculateForecast(allReservations) {
+    const directForecast = allReservations.filter(res => res.sourcePlatform === 'Direto' && ['Confirmada', 'Em andamento', 'Pré-reserva'].includes(res.status)).reduce((total, res) => total + Math.max(0, (res.totalValue || 0) - (res.amountPaid || 0)), 0);
+    const platformForecast = allReservations.filter(res => res.sourcePlatform === 'Airbnb' && !res.isPayoutConfirmed).reduce((total, res) => total + (res.totalValue || 0), 0);
+    return directForecast + platformForecast;
+}
+
+// --- FUNÇÕES DE RENDERIZAÇÃO DE TABELAS ---
 function renderTransactionsTable(allTransactions) {
     const tableBody = document.getElementById('transactions-table-body'); if (!tableBody) return;
     tableBody.innerHTML = allTransactions.map(tx => `
@@ -143,14 +171,12 @@ function renderTransactionsTable(allTransactions) {
         </tr>`).join('');
 }
 
-// --- LÓGICA DE RESERVAS ---
 function renderReservationsTable() {
     const tableBody = document.getElementById('reservations-table-body'); if (!tableBody) return;
     const sortedReservations = [...reservations].sort((a,b) => b.startDate.toDate() - a.startDate.toDate());
     tableBody.innerHTML = sortedReservations.map(res => {
         const colorClass = statusColors[res.status || 'N/D'] || 'bg-gray-400';
         let actionButton = `<button onclick="openReservationModal('${res.id}')" class="text-sky-600 hover:text-sky-800 font-medium">Editar</button>`;
-
         if (res.sourcePlatform === 'Airbnb' && !res.isPayoutConfirmed) {
             actionButton = `<button onclick="confirmPlatformPayout('${res.id}')" class="bg-green-500 text-white text-xs font-bold py-1 px-2 rounded-md hover:bg-green-600">Confirmar Recebimento</button>`;
         }
@@ -163,30 +189,61 @@ function renderReservationsTable() {
     }).join('');
 }
 
-async function handleAddOrUpdateReservation(event) {
-    event.preventDefault();
-    const form = event.target;
-    const reservationId = form['reservation-id'].value;
-    const totalValue = parseFloat(form['res-total-value'].value);
-    const sourcePlatform = form['res-source-platform'].value;
+function renderCalendar() {
+    const grid = document.getElementById('calendar-grid'); const display = document.getElementById('current-month-year'); if (!grid || !display) return;
+    grid.innerHTML = ''; const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+    display.textContent = `${currentDate.toLocaleString('pt-BR', { month: 'long' })} ${year}`; const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 0; i < firstDay; i++) grid.insertAdjacentHTML('beforeend', '<div class="border rounded-md bg-slate-50"></div>');
+    for (let day = 1; day <= daysInMonth; day++) {
+        const today = new Date(year, month, day); const dayCell = document.createElement('div');
+        dayCell.className = 'calendar-day border rounded-md p-2 flex flex-col bg-white hover:bg-sky-50';
+        dayCell.innerHTML = `<span class="font-medium self-start">${day}</span><div class="events-container flex-grow space-y-1 mt-1 overflow-hidden"></div>`;
+        dayCell.addEventListener('click', (e) => { if (e.target.closest('.event-chip')) return; openReservationModal(null, today.toISOString().split('T')[0]); });
+        const eventsContainer = dayCell.querySelector('.events-container');
+        const dayReservations = reservations.filter(res => { const start = res.startDate.toDate(); start.setHours(0,0,0,0); const end = res.endDate.toDate(); end.setHours(0,0,0,0); return today >= start && today <= end; });
+        dayReservations.forEach(res => {
+            const colorClass = statusColors[res.status] || 'bg-gray-400';
+            const eventDiv = document.createElement('div'); eventDiv.className = `event-chip text-white text-xs p-1 rounded-md truncate cursor-pointer ${colorClass}`;
+            eventDiv.textContent = res.guestName; eventDiv.addEventListener('click', () => openReservationModal(res.id)); eventsContainer.appendChild(eventDiv);
+        });
+        grid.appendChild(dayCell);
+    }
+}
 
+
+// --- FUNÇÕES DE MANIPULAÇÃO DE DADOS (HANDLERS) ---
+async function handleSaveSettings(event) {
+    event.preventDefault();
+    const newSettings = {
+        shareArthur: parseFloat(document.getElementById('setting-share-arthur').value),
+        shareLucas: parseFloat(document.getElementById('setting-share-lucas').value),
+        shareFundoCaixa: parseFloat(document.getElementById('setting-share-caixa').value),
+        fundoReservaFixo: parseFloat(document.getElementById('setting-reserve-fund').value)
+    };
+    const totalShare = newSettings.shareArthur + newSettings.shareLucas + newSettings.shareFundoCaixa;
+    if (Math.abs(totalShare - 100) > 0.01) { alert("A soma das porcentagens de divisão deve ser exatamente 100%."); return; }
+
+    try {
+        await db.collection('settings').doc('main').set(newSettings, { merge: true });
+        alert("Configurações salvas com sucesso!");
+    } catch (error) { console.error("Erro ao salvar configurações:", error); alert("Não foi possível salvar as configurações."); }
+}
+
+async function handleAddOrUpdateReservation(event) {
+    event.preventDefault(); const form = event.target; const reservationId = form['reservation-id'].value;
+    const totalValue = parseFloat(form['res-total-value'].value); const sourcePlatform = form['res-source-platform'].value;
     let reservationData = {
         guestName: form['res-guest-name'].value.trim(), propertyId: form['res-property'].value,
         startDate: new Date(form['res-start-date'].value + 'T00:00:00'), endDate: new Date(form['res-end-date'].value + 'T00:00:00'),
         totalValue: totalValue, status: form['res-status'].value, sourcePlatform: sourcePlatform,
     };
-
-    if (sourcePlatform === 'Airbnb') {
-        reservationData.amountPaid = totalValue; 
-        reservationData.isPayoutConfirmed = false;
-    }
-
+    if (sourcePlatform === 'Airbnb') { reservationData.amountPaid = totalValue; reservationData.isPayoutConfirmed = false; }
     try {
         const dataToSave = {...reservationData, startDate: firebase.firestore.Timestamp.fromDate(reservationData.startDate), endDate: firebase.firestore.Timestamp.fromDate(reservationData.endDate)};
         if (reservationId) { await db.collection('reservations').doc(reservationId).update(dataToSave); }
         else {
-            if (!dataToSave.amountPaid) dataToSave.amountPaid = 0;
-            if (!dataToSave.status) dataToSave.status = 'Pré-reserva';
+            if (!dataToSave.amountPaid) dataToSave.amountPaid = 0; if (!dataToSave.status) dataToSave.status = 'Pré-reserva';
             await db.collection('reservations').add(dataToSave);
         }
         closeModal('reservation-modal');
@@ -194,12 +251,8 @@ async function handleAddOrUpdateReservation(event) {
 }
 
 async function handleRegisterPayment(event) {
-    event.preventDefault();
-    const form = event.target;
-    const reservationId = form['payment-reservation-id'].value;
-    const paymentAmount = parseFloat(form['payment-amount'].value);
-    if (isNaN(paymentAmount) || paymentAmount <= 0) { alert("Valor inválido."); return; }
-
+    event.preventDefault(); const form = event.target; const reservationId = form['payment-reservation-id'].value;
+    const paymentAmount = parseFloat(form['payment-amount'].value); if (isNaN(paymentAmount) || paymentAmount <= 0) { alert("Valor inválido."); return; }
     const reservationRef = db.collection('reservations').doc(reservationId);
     try {
         await db.runTransaction(async (transaction) => {
@@ -207,7 +260,6 @@ async function handleRegisterPayment(event) {
             const resData = resDoc.data();
             const updateData = { amountPaid: (resData.amountPaid || 0) + paymentAmount };
             if (resData.status === 'Pré-reserva') updateData.status = 'Confirmada';
-            
             transaction.set(db.collection('financial_transactions').doc(), {
                 description: `Pagamento Reserva - ${resData.guestName}`, amount: paymentAmount, date: firebase.firestore.Timestamp.now(),
                 type: 'revenue', category: 'Receita de Aluguel', reservationId: reservationId, status: 'active'
@@ -224,22 +276,36 @@ async function confirmPlatformPayout(reservationId) {
     try {
         const resDoc = await reservationRef.get(); if (!resDoc.exists) throw "Reserva não encontrada!";
         const resData = resDoc.data();
-
         await db.collection('financial_transactions').add({
             description: `Recebimento Plataforma - ${resData.guestName} (${resData.sourcePlatform})`,
-            amount: resData.totalValue, date: firebase.firestore.Timestamp.now(),
-            type: 'revenue', category: 'Receita de Plataforma', reservationId: reservationId, status: 'active'
+            amount: resData.totalValue, date: firebase.firestore.Timestamp.now(), type: 'revenue',
+            category: 'Receita de Plataforma', reservationId: reservationId, status: 'active'
         });
         await reservationRef.update({ isPayoutConfirmed: true });
     } catch (error) { console.error("Erro ao confirmar recebimento: ", error); alert("Ocorreu um erro."); }
 }
 
-// --- OUTRAS FUNÇÕES ---
+async function handleSaveTransaction(event) {
+    event.preventDefault(); const form = event.target; const type = form['transaction-type'].value;
+    const amount = parseFloat(form['tx-amount'].value); if (isNaN(amount) || amount <= 0) { alert('Valor inválido.'); return; }
+    const transactionData = { description: form['tx-description'].value.trim(), amount: amount, date: firebase.firestore.Timestamp.fromDate(new Date(form['tx-date'].value + 'T00:00:00')), type: type, category: type === 'expense' ? form['tx-category'].value : 'Receita Avulsa', status: 'active' };
+    try { await db.collection('financial_transactions').add(transactionData); closeModal('transaction-modal'); }
+    catch (error) { console.error("Erro ao salvar transação: ", error); alert("Não foi possível salvar."); }
+}
+
+function confirmDeleteTransaction(transactionId) { if (confirm("Tem certeza?")) softDeleteTransaction(transactionId); }
+async function softDeleteTransaction(transactionId) {
+    const user = auth.currentUser; if (!user) { alert("Você precisa estar logado."); return; }
+    try { await db.collection('financial_transactions').doc(transactionId).update({ status: 'deleted', deletedAt: firebase.firestore.FieldValue.serverTimestamp(), deletedBy: user.email }); }
+    catch (error) { console.error("Erro ao excluir: ", error); alert("Não foi possível excluir."); }
+}
+
+
+// --- FUNÇÕES DE MODAL E UTILITÁRIAS ---
 function openReservationModal(reservationId = null, startDate = null) {
     const modal = document.getElementById('reservation-modal'); const form = document.getElementById('reservation-form'); form.reset();
     document.getElementById('reservation-id').value = reservationId || '';
     const financialSection = document.getElementById('financial-details-section'); const paymentButtonWrapper = document.getElementById('payment-button-wrapper');
-
     if (reservationId) {
         const reservation = reservations.find(r => r.id === reservationId);
         if (reservation) {
@@ -248,7 +314,6 @@ function openReservationModal(reservationId = null, startDate = null) {
             form['res-end-date'].value = reservation.endDate.toDate().toISOString().split('T')[0];
             form['res-total-value'].value = reservation.totalValue; form['res-status'].value = reservation.status || 'Pré-reserva';
             form['res-source-platform'].value = reservation.sourcePlatform || 'Direto';
-            
             document.getElementById('reservation-modal-title').textContent = "Editar Reserva";
             const amountPaid = reservation.amountPaid || 0;
             document.getElementById('details-total').textContent = formatCurrency(reservation.totalValue);
@@ -256,7 +321,6 @@ function openReservationModal(reservationId = null, startDate = null) {
             document.getElementById('details-due').textContent = formatCurrency(reservation.totalValue - amountPaid);
             document.getElementById('register-payment-btn').onclick = () => openPaymentModal(reservationId);
             financialSection.classList.remove('hidden');
-
             if(reservation.sourcePlatform !== 'Direto') paymentButtonWrapper.classList.add('hidden');
             else paymentButtonWrapper.classList.remove('hidden');
         }
@@ -292,41 +356,12 @@ function openTransactionModal(type) {
     modal.classList.remove('hidden');
 }
 
-async function handleSaveTransaction(event) {
-    event.preventDefault(); const form = event.target;
-    const type = form['transaction-type'].value; const amount = parseFloat(form['tx-amount'].value); if (isNaN(amount) || amount <= 0) { alert('Valor inválido.'); return; }
-    const transactionData = { description: form['tx-description'].value.trim(), amount: amount, date: firebase.firestore.Timestamp.fromDate(new Date(form['tx-date'].value + 'T00:00:00')), type: type, category: type === 'expense' ? form['tx-category'].value : 'Receita Avulsa', status: 'active' };
-    try { await db.collection('financial_transactions').add(transactionData); closeModal('transaction-modal'); }
-    catch (error) { console.error("Erro ao salvar transação: ", error); alert("Não foi possível salvar."); }
-}
-
-function confirmDeleteTransaction(transactionId) { if (confirm("Tem certeza?")) softDeleteTransaction(transactionId); }
-async function softDeleteTransaction(transactionId) {
-    const user = auth.currentUser; if (!user) { alert("Você precisa estar logado."); return; }
-    try { await db.collection('financial_transactions').doc(transactionId).update({ status: 'deleted', deletedAt: firebase.firestore.FieldValue.serverTimestamp(), deletedBy: user.email }); }
-    catch (error) { console.error("Erro ao excluir: ", error); alert("Não foi possível excluir."); }
-}
-
-function renderCalendar() {
-    const grid = document.getElementById('calendar-grid'); const display = document.getElementById('current-month-year'); if (!grid || !display) return;
-    grid.innerHTML = ''; const year = currentDate.getFullYear(); const month = currentDate.getMonth();
-    display.textContent = `${currentDate.toLocaleString('pt-BR', { month: 'long' })} ${year}`; const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    for (let i = 0; i < firstDay; i++) grid.insertAdjacentHTML('beforeend', '<div class="border rounded-md bg-slate-50"></div>');
-    for (let day = 1; day <= daysInMonth; day++) {
-        const today = new Date(year, month, day); const dayCell = document.createElement('div');
-        dayCell.className = 'calendar-day border rounded-md p-2 flex flex-col bg-white hover:bg-sky-50';
-        dayCell.innerHTML = `<span class="font-medium self-start">${day}</span><div class="events-container flex-grow space-y-1 mt-1 overflow-hidden"></div>`;
-        dayCell.addEventListener('click', (e) => { if (e.target.closest('.event-chip')) return; openReservationModal(null, today.toISOString().split('T')[0]); });
-        const eventsContainer = dayCell.querySelector('.events-container');
-        const dayReservations = reservations.filter(res => { const start = res.startDate.toDate(); start.setHours(0,0,0,0); const end = res.endDate.toDate(); end.setHours(0,0,0,0); return today >= start && today <= end; });
-        dayReservations.forEach(res => {
-            const colorClass = statusColors[res.status] || 'bg-gray-400';
-            const eventDiv = document.createElement('div'); eventDiv.className = `event-chip text-white text-xs p-1 rounded-md truncate cursor-pointer ${colorClass}`;
-            eventDiv.textContent = res.guestName; eventDiv.addEventListener('click', () => openReservationModal(res.id)); eventsContainer.appendChild(eventDiv);
-        });
-        grid.appendChild(dayCell);
-    }
+function populateSettingsForm() {
+    if (!settings) return;
+    document.getElementById('setting-share-arthur').value = settings.shareArthur || 0;
+    document.getElementById('setting-share-lucas').value = settings.shareLucas || 0;
+    document.getElementById('setting-share-caixa').value = settings.shareFundoCaixa || 0;
+    document.getElementById('setting-reserve-fund').value = settings.fundoReservaFixo || 0;
 }
 
 function closeModal(modalId) { document.getElementById(modalId)?.classList.add('hidden'); }
