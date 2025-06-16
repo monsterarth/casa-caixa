@@ -71,8 +71,11 @@ function navigateMonth(direction) {
 }
 
 function listenForData() {
-    // Ouve por mudanças nas transações financeiras
-    db.collection('financial_transactions').orderBy('date', 'desc').onSnapshot(snapshot => {
+    // Ouve por mudanças nas transações financeiras ativas
+    db.collection('financial_transactions')
+      .where('status', '==', 'active') // <-- A MÁGICA ACONTECE AQUI
+      .orderBy('date', 'desc')
+      .onSnapshot(snapshot => {
         transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         updateAllUI();
     }, error => console.error("Erro ao buscar transações:", error));
@@ -167,17 +170,22 @@ function renderTransactionsTable(allTransactions) {
     if (!tableBody) return;
     tableBody.innerHTML = allTransactions.map(tx => {
         const isRevenue = tx.type === 'revenue';
-        const amount = Math.abs(tx.amount); // Pega o valor absoluto para formatar
+        const amount = Math.abs(tx.amount);
         const formattedAmount = formatCurrency(amount);
 
         return `
-            <tr class="hover:bg-slate-50">
+            <tr class="hover:bg-slate-50 group">
                 <td class="p-3">${tx.description}</td>
                 <td class="p-3 font-medium ${isRevenue ? 'text-green-600' : 'text-red-600'}">
                     ${isRevenue ? '+' : '-'} ${formattedAmount}
                 </td>
                 <td class="p-3 text-slate-600">${tx.category || 'N/A'}</td>
                 <td class="p-3 text-slate-600">${tx.date.toDate().toLocaleDateString('pt-BR')}</td>
+                <td class="p-3 text-right">
+                    <button onclick="confirmDeleteTransaction('${tx.id}')" class="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
             </tr>
         `;
     }).join('');
@@ -457,4 +465,32 @@ function formatCurrency(value) {
     // Garante que o valor seja um número antes de formatar
     const numberValue = Number(value) || 0;
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numberValue);
+}
+
+function confirmDeleteTransaction(transactionId) {
+    if (confirm("Tem certeza que deseja excluir este lançamento? A ação não poderá ser desfeita diretamente pelo sistema.")) {
+        softDeleteTransaction(transactionId);
+    }
+}
+
+async function softDeleteTransaction(transactionId) {
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Você precisa estar logado para excluir um lançamento.");
+        return;
+    }
+
+    const transactionRef = db.collection('financial_transactions').doc(transactionId);
+
+    try {
+        await transactionRef.update({
+            status: 'deleted',
+            deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            deletedBy: user.email
+        });
+        // O listener do onSnapshot vai atualizar a UI automaticamente!
+    } catch (error) {
+        console.error("Erro ao excluir lançamento: ", error);
+        alert("Não foi possível excluir o lançamento.");
+    }
 }
