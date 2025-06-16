@@ -7,84 +7,48 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Chosen Palette: "Slate & Sky Blue" - A professional and calm palette with a light gray-blue base, dark slate for text, and sky blue for accents and interactive elements. -->
-    <!-- Application Structure Plan: A dashboard-centric, tab-based Single Page Application (SPA). The structure prioritizes the user's primary goals: 1) Get a quick financial overview (Dashboard). 2) Manage and view occupancy (Calendário). 3) Drill down into financial details (Lançamentos). 4) Understand the system's logic (Arquitetura). This tabbed approach is intuitive for a management tool, allowing users to switch contexts easily without losing their place, which is more user-friendly than the report's original document structure. -->
-    <!-- Visualization & Content Choices: 
-        - Report Info: Financial KPIs (Lucro, Saldo, etc.) -> Goal: Inform/Summarize -> Viz: "Stat Cards" (HTML/Tailwind) -> Interaction: Hover effects -> Justification: Provides a high-level, scannable overview of the business's health.
-        - Report Info: Revenue vs. Expenses -> Goal: Compare -> Viz: Doughnut Chart (Chart.js) -> Interaction: Tooltips on hover -> Justification: Visually represents the core financial composition in an easily digestible format.
-        - Report Info: Reservation Schedule -> Goal: Organize/Inform -> Viz: Simulated Calendar Grid (HTML/Tailwind) -> Interaction: Click on events to open a detail modal -> Justification: Translates the complex requirement of a reservation calendar into a clear visual prototype.
-        - Report Info: Financial Transactions List -> Goal: Organize/Detail -> Viz: Responsive Table (HTML/Tailwind) -> Interaction: Buttons to trigger "add entry" modals -> Justification: Standard, effective way to display detailed tabular data.
-        - Report Info: Backend Logic (Cloud Functions, DB writes) -> Goal: Explain -> Viz: Flowchart Diagram (HTML/Tailwind) -> Interaction: Static visual aid -> Justification: Demystifies the backend processes described in the report, making the system's "magic" understandable.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8; /* Light blue-gray background */
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        .tab-button {
-            transition: all 0.3s ease;
-        }
-        .tab-button.active {
-            background-color: #38bdf8; /* sky-400 */
-            color: white;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .stat-card {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        }
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-        .calendar-grid {
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-        }
-        .calendar-day {
-            min-height: 120px;
-        }
-        .calendar-event {
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px; /* Base height */
-            max-height: 400px;
-        }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 350px;
-            }
-        }
+        .tab-button { transition: all 0.3s ease; }
+        .tab-button.active { background-color: #38bdf8; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stat-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
+        .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .calendar-day { min-height: 120px; }
+        .calendar-event { cursor: pointer; transition: background-color 0.2s ease; }
+        .chart-container { position: relative; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
     </style>
 </head>
 <body class="text-slate-800">
 
-    <div id="app" class="container mx-auto p-4 md:p-8">
+    <div id="login-container" class="min-h-screen flex items-center justify-center bg-slate-100">
+        <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
+            <h1 class="text-3xl font-bold text-slate-900">Gestor de Propriedades</h1>
+            <p class="text-slate-600 mt-2 mb-8">Faça login para continuar.</p>
+            <button id="login-button" class="w-full bg-sky-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-sky-600 transition-colors flex items-center justify-center gap-3">
+                <i class="fab fa-google"></i>
+                Entrar com Google
+            </button>
+        </div>
+    </div>
 
+    <div id="app" class="container mx-auto p-4 md:p-8 hidden">
         <header class="mb-8">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div>
                     <h1 class="text-3xl font-bold text-slate-900">Gestor de Propriedades</h1>
-                    <p class="text-slate-600 mt-1">Bem-vindos, Arthur & Lucas. Aqui está o resumo do seu negócio.</p>
+                    <p id="welcome-message" class="text-slate-600 mt-1">Bem-vindo(a). Aqui está o resumo do seu negócio.</p>
                 </div>
-                <div class="text-sm text-slate-500 mt-4 md:mt-0">
-                    <i class="fas fa-user-circle mr-2"></i>Workspace: Propriedades Arthur & Lucas
+                <div class="flex items-center gap-4 text-sm text-slate-500 mt-4 md:mt-0">
+                    <span id="user-email"></span>
+                    <button id="logout-button" class="text-red-500 hover:text-red-700 font-medium">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Sair
+                    </button>
                 </div>
             </div>
         </header>
@@ -105,18 +69,15 @@
         </nav>
 
         <main>
-            <!-- Dashboard Tab -->
-            <div id="dashboard-tab" class="tab-content active animate-fadeIn">
+            <div id="dashboard-tab" class="tab-content active">
                 <div class="mb-8">
                     <h2 class="text-2xl font-semibold text-slate-800 mb-1">Visão Geral Financeira</h2>
-                    <p class="text-slate-600">Esta seção apresenta os indicadores chave de desempenho (KPIs) do seu negócio, calculados em tempo real. Os dados são agregados no backend para garantir performance e precisão, refletindo instantaneamente cada pagamento e despesa registrada no sistema.</p>
+                    <p class="text-slate-600">Esta seção apresenta os indicadores chave de desempenho (KPIs) do seu negócio.</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Main KPI Cards -->
                     <div class="stat-card col-span-1 md:col-span-2 lg:col-span-1 bg-white p-6 rounded-xl shadow-md border-l-4 border-sky-400">
                         <h3 class="text-slate-500 text-lg font-medium">LUCRO LÍQUIDO A DIVIDIR</h3>
                         <p id="netProfit" class="text-4xl font-bold text-slate-900 mt-2">R$ 0,00</p>
-                        <p class="text-sm text-slate-500 mt-2">(Receita Confirmada - Desp. Condomínio)</p>
                     </div>
                     <div class="stat-card bg-white p-6 rounded-xl shadow-md">
                         <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (Real)</h3>
@@ -132,7 +93,6 @@
                     <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
                         <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento para Divisão</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Revenue & Expenses -->
                             <div>
                                 <p class="text-slate-500">Receita Confirmada (Período)</p>
                                 <p id="confirmedRevenue" class="text-2xl font-bold text-green-600">R$ 0,00</p>
@@ -144,21 +104,13 @@
                             <div class="md:col-span-2 border-t pt-4 mt-4">
                                 <h4 class="text-lg font-semibold text-slate-700 mb-4">Acerto de Contas</h4>
                                 <div class="space-y-4">
-                                    <!-- Arthur's Payout -->
                                     <div class="flex justify-between items-center">
                                         <span class="font-medium text-slate-800">Valor Final a Receber (Arthur)</span>
                                         <span id="arthurFinalPayout" class="text-xl font-bold text-sky-600">R$ 0,00</span>
                                     </div>
-                                    <div class="text-right text-sm text-slate-500">
-                                        (<span id="arthurShare">R$ 0,00</span> de 50% - <span id="arthurPersonalExpenses">R$ 0,00</span> de despesas)
-                                    </div>
-                                     <!-- Lucas's Payout -->
                                     <div class="flex justify-between items-center">
                                         <span class="font-medium text-slate-800">Valor Final a Receber (Lucas)</span>
                                         <span id="lucasFinalPayout" class="text-xl font-bold text-sky-600">R$ 0,00</span>
-                                    </div>
-                                    <div class="text-right text-sm text-slate-500">
-                                        (<span id="lucasShare">R$ 0,00</span> de 50% - <span id="lucasPersonalExpenses">R$ 0,00</span> de despesas)
                                     </div>
                                 </div>
                             </div>
@@ -166,7 +118,6 @@
                     </div>
                      <div class="bg-white p-6 rounded-xl shadow-md">
                         <h3 class="text-xl font-semibold text-slate-800 mb-4">Composição Financeira</h3>
-                        <p class="text-slate-600 text-sm mb-4">Análise visual da receita confirmada contra as despesas comuns do período.</p>
                         <div class="chart-container">
                             <canvas id="financialCompositionChart"></canvas>
                         </div>
@@ -174,11 +125,10 @@
                 </div>
             </div>
 
-            <!-- Calendar Tab -->
             <div id="calendar-tab" class="tab-content">
                  <div class="mb-8">
                     <h2 class="text-2xl font-semibold text-slate-800 mb-1">Calendário de Ocupação</h2>
-                    <p class="text-slate-600">Este calendário interativo exibe todas as reservas confirmadas, diferenciadas por cor para cada propriedade. Ele é a ferramenta central para gerenciar a ocupação e evitar conflitos. Clique em uma reserva para ver detalhes e registrar pagamentos, ou adicione novas reservas para bloquear datas.</p>
+                    <p class="text-slate-600">Visualize e gerencie todas as reservas confirmadas.</p>
                 </div>
                  <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
                     <div class="flex justify-between items-center mb-4">
@@ -190,7 +140,6 @@
                         </div>
                     </div>
                     <div class="calendar-grid grid border-t border-l border-slate-200">
-                        <!-- Calendar Headers -->
                         <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Dom</div>
                         <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Seg</div>
                         <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Ter</div>
@@ -198,20 +147,14 @@
                         <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Qui</div>
                         <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Sex</div>
                         <div class="text-center font-bold p-2 border-r border-b border-slate-200 bg-slate-50">Sáb</div>
-                        <!-- Calendar Days will be injected here by JS -->
-                    </div>
-                    <div class="mt-4 flex flex-wrap gap-4 text-sm">
-                        <div class="flex items-center"><span class="h-4 w-4 rounded-full bg-blue-500 mr-2"></span> Estância do Vale</div>
-                        <div class="flex items-center"><span class="h-4 w-4 rounded-full bg-indigo-500 mr-2"></span> Vale do Sabiá</div>
-                    </div>
+                        </div>
                 </div>
             </div>
 
-            <!-- Transactions Tab -->
             <div id="transactions-tab" class="tab-content">
                 <div class="mb-8">
                     <h2 class="text-2xl font-semibold text-slate-800 mb-1">Histórico de Lançamentos</h2>
-                    <p class="text-slate-600">Esta tabela detalha cada movimento financeiro registrado, funcionando como o livro-razão completo do seu negócio. Inclui tanto as receitas confirmadas de reservas quanto as despesas manuais. Utilize os botões para adicionar novos lançamentos que não estejam vinculados a uma reserva.</p>
+                     <p class="text-slate-600">Detalhes de cada movimento financeiro registrado.</p>
                 </div>
                  <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
                      <div class="flex justify-end mb-4 gap-2">
@@ -232,379 +175,36 @@
                                     <th class="p-3">Data</th>
                                 </tr>
                             </thead>
-                            <tbody id="transactions-table-body" class="divide-y divide-slate-200">
-                                <!-- Transaction rows will be injected here by JS -->
-                            </tbody>
+                            <tbody id="transactions-table-body" class="divide-y divide-slate-200"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
             
-            <!-- Architecture Tab -->
             <div id="architecture-tab" class="tab-content">
                 <div class="mb-8">
                     <h2 class="text-2xl font-semibold text-slate-800 mb-1">Visualização da Arquitetura</h2>
-                    <p class="text-slate-600">Esta seção traduz os conceitos técnicos do relatório de arquitetura em diagramas visuais. O objetivo é desmistificar como o sistema funciona nos bastidores, mostrando o fluxo de dados desde a ação do usuário até a atualização do banco de dados e da interface.</p>
+                    <p class="text-slate-600">Diagrama visual do fluxo de dados do sistema.</p>
                 </div>
-                
                 <div class="bg-white p-6 rounded-xl shadow-md">
                     <h3 class="text-xl font-semibold text-slate-800 mb-4">Fluxo de Dados: Registro de Pagamento</h3>
-                    <p class="text-slate-600 mb-6">Este diagrama ilustra a sequência de eventos que ocorrem quando um pagamento de reserva é registrado. A lógica é deliberadamente movida para o backend (Cloud Function) para garantir segurança e consistência atômica dos dados (ou tudo funciona, ou nada é salvo).</p>
-                    
                     <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
-                        <!-- Step 1: User Action -->
-                        <div class="flex flex-col items-center w-full md:w-1/4">
-                            <div class="bg-sky-100 border-2 border-sky-400 p-4 rounded-lg w-full">
-                                <i class="fas fa-mouse-pointer text-3xl text-sky-600 mb-2"></i>
-                                <h4 class="font-bold">1. Ação do Usuário</h4>
-                                <p class="text-sm">Arthur clica em "Registrar Pagamento" e insere R$ 5.000,00.</p>
-                            </div>
-                        </div>
-                        
+                        <div class="flex flex-col items-center w-full md:w-1/4"><div class="bg-sky-100 border-2 border-sky-400 p-4 rounded-lg w-full"><i class="fas fa-mouse-pointer text-3xl text-sky-600 mb-2"></i><h4 class="font-bold">1. Ação do Usuário</h4><p class="text-sm">Usuário clica em "Registrar Pagamento".</p></div></div>
                         <i class="fas fa-arrow-down md:fa-arrow-right text-2xl text-slate-400"></i>
-                        
-                        <!-- Step 2: Cloud Function -->
-                         <div class="flex flex-col items-center w-full md:w-1/4">
-                            <div class="bg-purple-100 border-2 border-purple-400 p-4 rounded-lg w-full">
-                                <i class="fas fa-cogs text-3xl text-purple-600 mb-2"></i>
-                                <h4 class="font-bold">2. Cloud Function</h4>
-                                <p class="text-sm">A interface invoca uma função segura no backend, passando os dados do pagamento.</p>
-                            </div>
-                        </div>
-
+                        <div class="flex flex-col items-center w-full md:w-1/4"><div class="bg-purple-100 border-2 border-purple-400 p-4 rounded-lg w-full"><i class="fas fa-cogs text-3xl text-purple-600 mb-2"></i><h4 class="font-bold">2. Cloud Function</h4><p class="text-sm">Interface invoca função segura no backend.</p></div></div>
                         <i class="fas fa-arrow-down md:fa-arrow-right text-2xl text-slate-400"></i>
-
-                        <!-- Step 3: Database Transaction -->
-                         <div class="flex flex-col items-center w-full md:w-1/3">
-                            <div class="bg-amber-100 border-2 border-amber-400 p-4 rounded-lg w-full">
-                                <i class="fas fa-database text-3xl text-amber-600 mb-2"></i>
-                                <h4 class="font-bold">3. Transação no BD</h4>
-                                <p class="text-sm">A função executa duas escritas de forma atômica:<br>
-                                a) Cria um `financial_transaction`.<br>
-                                b) Atualiza o `amountPaid` na `reservation`.</p>
-                            </div>
-                        </div>
-                        
+                        <div class="flex flex-col items-center w-full md:w-1/3"><div class="bg-amber-100 border-2 border-amber-400 p-4 rounded-lg w-full"><i class="fas fa-database text-3xl text-amber-600 mb-2"></i><h4 class="font-bold">3. Transação no BD</h4><p class="text-sm">Função escreve no Firestore de forma atômica.</p></div></div>
                         <i class="fas fa-arrow-down md:fa-arrow-right text-2xl text-slate-400"></i>
-
-                        <!-- Step 4: UI Update -->
-                         <div class="flex flex-col items-center w-full md:w-1/4">
-                            <div class="bg-green-100 border-2 border-green-400 p-4 rounded-lg w-full">
-                                <i class="fas fa-desktop text-3xl text-green-600 mb-2"></i>
-                                <h4 class="font-bold">4. UI Atualiza</h4>
-                                <p class="text-sm">O Dashboard e o Calendário, que "escutam" o BD, atualizam-se em tempo real.</p>
-                            </div>
-                        </div>
+                        <div class="flex flex-col items-center w-full md:w-1/4"><div class="bg-green-100 border-2 border-green-400 p-4 rounded-lg w-full"><i class="fas fa-desktop text-3xl text-green-600 mb-2"></i><h4 class="font-bold">4. UI Atualiza</h4><p class="text-sm">Dashboard e Calendário atualizam em tempo real.</p></div></div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modals -->
-    <div id="reservation-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4 animate-fadeInUp">
-            <h2 id="reservation-modal-title" class="text-2xl font-bold mb-4">Nova Reserva</h2>
-            <div id="reservation-details-view" class="hidden space-y-3">
-                <p><strong>Hóspede:</strong> <span id="detail-guestName"></span></p>
-                <p><strong>Contato:</strong> <span id="detail-guestContact"></span></p>
-                <p><strong>Propriedade:</strong> <span id="detail-property"></span></p>
-                <p><strong>Período:</strong> <span id="detail-period"></span></p>
-                <hr class="my-4">
-                <div class="flex justify-between items-center text-lg">
-                    <span>Valor Total:</span> <strong id="detail-totalValue"></strong>
-                </div>
-                 <div class="flex justify-between items-center text-lg">
-                    <span>Valor Pago:</span> <strong id="detail-amountPaid" class="text-green-600"></strong>
-                </div>
-                 <div class="flex justify-between items-center text-lg">
-                    <span>Saldo Devedor:</span> <strong id="detail-balanceDue" class="text-red-600"></strong>
-                </div>
-                 <div class="pt-4">
-                     <button class="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 transition-colors">
-                        <i class="fas fa-money-bill-wave mr-2"></i>Registrar Pagamento
-                     </button>
-                 </div>
-            </div>
-            <form id="reservation-form" class="space-y-4">
-                <!-- Form fields would go here for creating a new reservation -->
-                 <p class="text-slate-600">O formulário de criação de reserva estaria localizado aqui.</p>
-            </form>
-            <div class="flex justify-end mt-6">
-                <button onclick="closeModal('reservation-modal')" class="text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100">Fechar</button>
-            </div>
-        </div>
-    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
-    <div id="transaction-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4 animate-fadeInUp">
-            <h2 id="transaction-modal-title" class="text-2xl font-bold mb-4">Nova Despesa</h2>
-            <form id="transaction-form" class="space-y-4">
-                <div>
-                    <label for="trans-desc" class="block text-sm font-medium text-slate-700">Descrição</label>
-                    <input type="text" id="trans-desc" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                </div>
-                <div>
-                    <label for="trans-amount" class="block text-sm font-medium text-slate-700">Valor (R$)</label>
-                    <input type="number" id="trans-amount" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                </div>
-                 <div id="category-wrapper">
-                    <label for="trans-category" class="block text-sm font-medium text-slate-700">Categoria</label>
-                     <select id="trans-category" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                        <option>Condomínio</option>
-                        <option>Pessoal - Arthur</option>
-                        <option>Pessoal - Lucas</option>
-                     </select>
-                </div>
-            </form>
-            <div class="flex justify-end gap-2 mt-6">
-                <button onclick="closeModal('transaction-modal')" class="text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100">Cancelar</button>
-                <button id="transaction-submit-button" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Adicionar</button>
-            </div>
-        </div>
-    </div>
-
-<script>
-    // --- MOCK DATA ---
-    const MOCK_DASHBOARD_DATA = {
-        cashBalance: 4150.00,
-        forecastedRevenue: 5000.00,
-        confirmedRevenue_currentPeriod: 5000.00,
-        condominiumExpenses: -850.00,
-        netProfitToDivide: 4150.00,
-        arthurShare: 2075.00,
-        lucasShare: 2075.00,
-        arthurPersonalExpenses: 0.00,
-        lucasPersonalExpenses: 0.00,
-        arthurFinalPayout: 2075.00,
-        lucasFinalPayout: 2075.00,
-    };
-
-    const MOCK_PROPERTIES = {
-        'estancia_do_vale': { name: 'Estância do Vale', color: 'bg-blue-500', textColor: 'text-white' },
-        'vale_do_sabia': { name: 'Vale do Sabiá', color: 'bg-indigo-500', textColor: 'text-white' }
-    };
-
-    const MOCK_RESERVATIONS = [
-        { id: 1, guestName: 'Família Silva', guestContact: '11999998888', propertyId: 'estancia_do_vale', startDate: new Date('2025-06-05'), endDate: new Date('2025-06-08'), totalValue: 3000, amountPaid: 3000 },
-        { id: 2, guestName: 'Casal Martins', guestContact: '21988887777', propertyId: 'vale_do_sabia', startDate: new Date('2025-06-12'), endDate: new Date('2025-06-16'), totalValue: 4500, amountPaid: 2250 },
-        { id: 3, guestName: 'Grupo Amigos', guestContact: '31977776666', propertyId: 'estancia_do_vale', startDate: new Date('2025-06-20'), endDate: new Date('2025-06-23'), totalValue: 5000, amountPaid: 0 }
-    ];
-
-    const MOCK_TRANSACTIONS = [
-        { description: 'Pagamento Final - Reserva Família Silva', amount: 3000, category: 'Receita de Reserva', date: '2025-06-05', type: 'revenue' },
-        { description: 'Pagamento Sinal - Reserva Casal Martins', amount: 2250, category: 'Receita de Reserva', date: '2025-06-01', type: 'revenue' },
-        { description: 'Pagamento conta de luz', amount: -850, category: 'Condomínio', date: '2025-06-10', type: 'expense' },
-        { description: 'Manutenção Piscina', amount: -450, category: 'Condomínio', date: '2025-06-03', type: 'expense' },
-    ];
-    
-    // --- APP STATE & NAVIGATION ---
-    let currentTab = 'dashboard';
-
-    function showTab(tabId) {
-        // Deactivate current tab
-        document.querySelector(`.tab-button.active`).classList.remove('active');
-        document.querySelector(`#${currentTab}-tab`).classList.remove('active');
-
-        // Activate new tab
-        document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
-        document.querySelector(`#${tabId}-tab`).classList.add('active');
-        
-        currentTab = tabId;
-    }
-
-    // --- MODAL CONTROLS ---
-    function openModal(modalId) {
-        document.getElementById(modalId).classList.remove('hidden');
-    }
-
-    function closeModal(modalId) {
-        document.getElementById(modalId).classList.add('hidden');
-    }
-
-    function openReservationModal(reservationId = null) {
-        const modal = document.getElementById('reservation-modal');
-        const title = document.getElementById('reservation-modal-title');
-        const detailsView = document.getElementById('reservation-details-view');
-        const formView = document.getElementById('reservation-form');
-        
-        if (reservationId) {
-            const reservation = MOCK_RESERVATIONS.find(r => r.id === reservationId);
-            title.textContent = 'Detalhes da Reserva';
-            detailsView.classList.remove('hidden');
-            formView.classList.add('hidden');
-            
-            const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-            
-            document.getElementById('detail-guestName').textContent = reservation.guestName;
-            document.getElementById('detail-guestContact').textContent = reservation.guestContact;
-            document.getElementById('detail-property').textContent = MOCK_PROPERTIES[reservation.propertyId].name;
-            document.getElementById('detail-period').textContent = `${reservation.startDate.toLocaleDateString('pt-BR')} a ${reservation.endDate.toLocaleDateString('pt-BR')}`;
-            document.getElementById('detail-totalValue').textContent = formatter.format(reservation.totalValue);
-            document.getElementById('detail-amountPaid').textContent = formatter.format(reservation.amountPaid);
-            document.getElementById('detail-balanceDue').textContent = formatter.format(reservation.totalValue - reservation.amountPaid);
-        } else {
-            title.textContent = 'Nova Reserva';
-            detailsView.classList.add('hidden');
-            formView.classList.remove('hidden');
-        }
-        openModal('reservation-modal');
-    }
-    
-    function openTransactionModal(type) {
-        const modal = document.getElementById('transaction-modal');
-        const title = document.getElementById('transaction-modal-title');
-        const categoryWrapper = document.getElementById('category-wrapper');
-        const submitButton = document.getElementById('transaction-submit-button');
-        
-        if (type === 'expense') {
-            title.textContent = 'Nova Despesa';
-            categoryWrapper.classList.remove('hidden');
-            submitButton.className = "bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors";
-            submitButton.textContent = "Adicionar Despesa";
-
-        } else {
-            title.textContent = 'Nova Receita Avulsa';
-            categoryWrapper.classList.add('hidden');
-            submitButton.className = "bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors";
-            submitButton.textContent = "Adicionar Receita";
-        }
-        openModal('transaction-modal');
-    }
-
-    // --- DATA RENDERING ---
-    function formatCurrency(value) {
-        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-    
-    function renderDashboard() {
-        const data = MOCK_DASHBOARD_DATA;
-        document.getElementById('netProfit').textContent = formatCurrency(data.netProfitToDivide);
-        document.getElementById('cashBalance').textContent = formatCurrency(data.cashBalance);
-        document.getElementById('forecastedRevenue').textContent = formatCurrency(data.forecastedRevenue);
-        document.getElementById('confirmedRevenue').textContent = formatCurrency(data.confirmedRevenue_currentPeriod);
-        document.getElementById('condominiumExpenses').textContent = formatCurrency(Math.abs(data.condominiumExpenses));
-        
-        document.getElementById('arthurShare').textContent = formatCurrency(data.arthurShare);
-        document.getElementById('arthurPersonalExpenses').textContent = formatCurrency(data.arthurPersonalExpenses);
-        document.getElementById('arthurFinalPayout').textContent = formatCurrency(data.arthurFinalPayout);
-        
-        document.getElementById('lucasShare').textContent = formatCurrency(data.lucasShare);
-        document.getElementById('lucasPersonalExpenses').textContent = formatCurrency(data.lucasPersonalExpenses);
-        document.getElementById('lucasFinalPayout').textContent = formatCurrency(data.lucasFinalPayout);
-    }
-    
-    function renderCalendar() {
-        const calendarGrid = document.querySelector('.calendar-grid');
-        // Clear existing days except headers
-        calendarGrid.innerHTML = calendarGrid.innerHTML.substring(0, calendarGrid.innerHTML.indexOf('<!-- Calendar Days will be injected here by JS -->'));
-
-        const year = 2025;
-        const month = 5; // June (0-indexed)
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        // Add empty cells for the first days of the week
-        for (let i = 0; i < firstDay; i++) {
-            calendarGrid.insertAdjacentHTML('beforeend', '<div class="calendar-day border-r border-b border-slate-200 p-2"></div>');
-        }
-
-        // Add days of the month
-        for (let day = 1; day <= daysInMonth; day++) {
-            let dayHtml = `<div class="calendar-day border-r border-b border-slate-200 p-2 overflow-hidden relative">
-                               <span class="font-medium text-slate-700">${day}</span>
-                               <div class="space-y-1 mt-1">`;
-            
-            // Check for reservations on this day
-            const currentDate = new Date(year, month, day);
-            MOCK_RESERVATIONS.forEach(res => {
-                if (currentDate >= res.startDate && currentDate <= res.endDate) {
-                    const prop = MOCK_PROPERTIES[res.propertyId];
-                    dayHtml += `<div onclick="openReservationModal(${res.id})" class="calendar-event ${prop.color} ${prop.textColor} p-1 rounded-md text-xs truncate">
-                                    ${res.guestName}
-                                </div>`;
-                }
-            });
-            
-            dayHtml += `</div></div>`;
-            calendarGrid.insertAdjacentHTML('beforeend', dayHtml);
-        }
-    }
-
-    function renderTransactions() {
-        const tableBody = document.getElementById('transactions-table-body');
-        tableBody.innerHTML = '';
-        MOCK_TRANSACTIONS.forEach(tx => {
-            const isRevenue = tx.type === 'revenue';
-            const amountClass = isRevenue ? 'text-green-600' : 'text-red-600';
-            const amountPrefix = isRevenue ? '+' : '';
-            const row = `
-                <tr>
-                    <td class="p-3">${tx.description}</td>
-                    <td class="p-3 font-medium ${amountClass}">${amountPrefix} ${formatCurrency(Math.abs(tx.amount))}</td>
-                    <td class="p-3 text-slate-600">${tx.category}</td>
-                    <td class="p-3 text-slate-600">${new Date(tx.date).toLocaleDateString('pt-BR')}</td>
-                </tr>
-            `;
-            tableBody.insertAdjacentHTML('beforeend', row);
-        });
-    }
-    
-    function renderFinancialChart() {
-        const ctx = document.getElementById('financialCompositionChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Receita Confirmada', 'Despesas Condomínio'],
-                datasets: [{
-                    label: 'Composição Financeira',
-                    data: [
-                        MOCK_DASHBOARD_DATA.confirmedRevenue_currentPeriod, 
-                        Math.abs(MOCK_DASHBOARD_DATA.condominiumExpenses)
-                    ],
-                    backgroundColor: [
-                        '#22c55e', // green-500
-                        '#ef4444'  // red-500
-                    ],
-                    borderColor: '#f0f4f8',
-                    borderWidth: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed !== null) {
-                                    label += formatCurrency(context.parsed);
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
-                cutout: '70%'
-            }
-        });
-    }
-
-    // --- INITIALIZATION ---
-    document.addEventListener('DOMContentLoaded', () => {
-        renderDashboard();
-        renderCalendar();
-        renderTransactions();
-        renderFinancialChart();
-    });
-
-</script>
+    <script src="app.js"></script>
 </body>
 </html>
