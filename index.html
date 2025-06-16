@@ -10,11 +10,10 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        .tab-button { transition: all 0.3s ease; }
+        .tab-button { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; transition: all 0.3s ease; }
         .tab-button.active { background-color: #38bdf8; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .stat-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
         .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
         .calendar-day { min-height: 120px; }
@@ -49,7 +48,7 @@
             </div>
         </header>
 
-        <nav class="flex flex-wrap gap-2 mb-8">
+        <nav class="flex flex-wrap gap-2 mb-8 bg-white p-2 rounded-lg shadow-sm">
             <button class="tab-button active" onclick="showTab('dashboard')"><i class="fas fa-chart-pie mr-2"></i>Dashboard</button>
             <button class="tab-button" onclick="showTab('calendar')"><i class="fas fa-calendar-alt mr-2"></i>Calendário</button>
             <button class="tab-button" onclick="showTab('transactions')"><i class="fas fa-exchange-alt mr-2"></i>Lançamentos</button>
@@ -58,7 +57,37 @@
         <main>
             <!-- Dashboard Tab -->
             <div id="dashboard-tab" class="tab-content">
-                <!-- Conteúdo do Dashboard (sem alterações) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-6">
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="stat-card bg-white p-6 rounded-xl shadow-md border-l-4 border-sky-400">
+                                <h3 class="text-slate-500 text-lg font-medium">LUCRO LÍQUIDO A DIVIDIR</h3>
+                                <p id="netProfit" class="text-4xl font-bold text-slate-900 mt-2">R$ 0,00</p>
+                            </div>
+                            <div class="stat-card bg-white p-6 rounded-xl shadow-md">
+                                <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (Real)</h3>
+                                <p id="cashBalance" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento para Divisão</h3>
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <p class="text-slate-500">Receita Confirmada</p>
+                                    <p id="confirmedRevenue" class="text-2xl font-bold text-green-600">R$ 0,00</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500">Despesas Condomínio</p>
+                                    <p id="condominiumExpenses" class="text-2xl font-bold text-red-600">R$ 0,00</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Composição Financeira</h3>
+                        <div class="h-64"><canvas id="financialCompositionChart"></canvas></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Calendar Tab -->
@@ -79,33 +108,35 @@
                     <div class="grid grid-cols-7 gap-2 text-center font-bold text-slate-600 mb-2">
                         <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
                     </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-1">
-                        <!-- Dias do calendário serão injetados aqui pelo JS -->
-                    </div>
-                    <div class="mt-4 flex flex-wrap gap-4 text-sm">
-                        <div class="flex items-center"><span class="h-4 w-4 rounded-full bg-blue-500 mr-2"></span> Estância do Vale</div>
-                        <div class="flex items-center"><span class="h-4 w-4 rounded-full bg-indigo-500 mr-2"></span> Vale do Sabiá</div>
-                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
                 </div>
             </div>
 
             <!-- Transactions Tab -->
             <div id="transactions-tab" class="tab-content">
-                 <!-- Conteúdo dos Lançamentos (sem alterações) -->
+                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                     <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-slate-800">Histórico de Lançamentos</h2>
+                        <div class="flex gap-2">
+                            <button onclick="openTransactionModal('revenue')" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"><i class="fas fa-plus mr-2"></i>Receita</button>
+                            <button onclick="openTransactionModal('expense')" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"><i class="fas fa-minus mr-2"></i>Despesa</button>
+                        </div>
+                     </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-slate-600"><tr class="p-3"><th>Descrição</th><th>Valor</th><th>Categoria</th><th>Data</th></tr></thead>
+                            <tbody id="transactions-table-body" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
-
-    <!-- Modals (sem alterações por enquanto) -->
+    <!-- Modals and scripts are unchanged, just need the correct app.js -->
     <div id="transaction-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center hidden"></div>
-
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <!-- Seu script -->
     <script src="app.js"></script>
 </body>
 </html>
-
