@@ -94,11 +94,20 @@
                             <h3 id="current-month-year" class="text-xl font-bold text-center w-48"></h3>
                             <button id="next-month-btn" class="p-2 rounded-full hover:bg-slate-100 transition-colors"><i class="fas fa-chevron-right"></i></button>
                         </div>
+                        <div>
+                             <button onclick="openReservationModal()" class="w-full bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>Nova Reserva
+                            </button>
+                        </div>
+                    </div>
                         <div id="reservations-tab" class="tab-content">
                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                     <div class="flex justify-between items-center mb-4">
+                     <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                         <h2 class="text-2xl font-semibold text-slate-800">Gerenciador de Reservas</h2>
-                        </div>
+                        <button onclick="openReservationModal()" class="w-full sm:w-auto bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Nova Reserva
+                        </button>
+                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 text-slate-600">
