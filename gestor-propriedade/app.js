@@ -1,15 +1,23 @@
 import { auth, db, provider, Timestamp } from './firebase-config.js';
-import { updateAllUI, renderCalendar, openReservationModal, openPaymentModal, closeModal, showTab, populateSettingsForm } from './ui.js';
+import { updateAllUI, renderCalendar, openReservationModal, openPaymentModal, openTransactionModal, closeModal, showTab, populateSettingsForm } from './ui.js';
 
 // --- ESTADO GLOBAL DO APP ---
 let currentDate = new Date();
 let reservations = [];
 let transactions = [];
-let settings = {}; // Guarda as configurações vindas do Firebase
+let settings = {};
 
 // --- LÓGICA DE CÁLCULO ---
+
 function calculateFinancialSummary(allTransactions) {
-    const summary = { confirmedRevenue: 0, condominiumExpenses: 0, totalExpenses: 0 };
+    const summary = { 
+        confirmedRevenue: 0, 
+        condominiumExpenses: 0, 
+        personalArthur: 0,
+        personalLucas: 0,
+        totalExpenses: 0
+    };
+
     allTransactions.forEach(tx => {
         if (tx.type === 'revenue') {
             summary.confirmedRevenue += tx.amount;
@@ -17,6 +25,10 @@ function calculateFinancialSummary(allTransactions) {
             summary.totalExpenses += tx.amount;
             if (tx.category === 'Condomínio') {
                 summary.condominiumExpenses += tx.amount;
+            } else if (tx.category === 'Pessoal - Arthur') {
+                summary.personalArthur += tx.amount;
+            } else if (tx.category === 'Pessoal - Lucas') {
+                summary.personalLucas += tx.amount;
             }
         }
     });
@@ -26,13 +38,12 @@ function calculateFinancialSummary(allTransactions) {
 }
 
 function calculateForecast(allReservations) {
-    return allReservations.reduce((total, res) => {
+    return allReservations.filter(r => r.status !== 'Cancelada').reduce((total, res) => {
         const amountDue = (res.totalValue || 0) - (res.amountPaid || 0);
         return total + (amountDue > 0 ? amountDue : 0);
     }, 0);
 }
 
-// NOVA FUNÇÃO: Calcula o acerto de contas com base nas configurações
 function calculateSettlement(summary, appSettings) {
     const netProfit = summary.netProfitToDivide > 0 ? summary.netProfitToDivide : 0;
     
@@ -43,49 +54,49 @@ function calculateSettlement(summary, appSettings) {
     const valorParaCaixa = netProfit * (shareCaixaPercent / 100);
     const lucroParaSocios = netProfit - valorParaCaixa;
 
+    const cotaArthur = lucroParaSocios * (shareArthurPercent / 100);
+    const cotaLucas = lucroParaSocios * (shareLucasPercent / 100);
+
     return {
-        parteArthur: lucroParaSocios * (shareArthurPercent / 100),
-        parteLucas: lucroParaSocios * (shareLucasPercent / 100),
+        cotaArthur: cotaArthur,
+        despesasArthur: summary.personalArthur,
+        saldoFinalArthur: cotaArthur - summary.personalArthur,
+        cotaLucas: cotaLucas,
+        despesasLucas: summary.personalLucas,
+        saldoFinalLucas: cotaLucas - summary.personalLucas,
+        fundoCaixaTeorico: (summary.cashBalance - (cotaArthur - summary.personalArthur) - (cotaLucas - summary.personalLucas))
     };
 }
 
 
-// --- LÓGICA DE EVENTOS E DADOS ---
-async function handleAddOrUpdateReservation(event) {
+// --- HANDLERS DE DADOS (SALVAR, EDITAR, DELETAR) ---
+
+async function handleSaveReservation(event) {
     event.preventDefault();
     const form = event.target;
     const reservationId = form['reservation-id'].value;
+
     const reservationData = {
         guestName: form['res-guest-name'].value.trim(),
         propertyId: form['res-property'].value,
-        startDate: new Date(form['res-start-date'].value + 'T00:00:00'),
-        endDate: new Date(form['res-end-date'].value + 'T00:00:00'),
+        startDate: Timestamp.fromDate(new Date(form['res-start-date'].value + 'T00:00:00')),
+        endDate: Timestamp.fromDate(new Date(form['res-end-date'].value + 'T00:00:00')),
         totalValue: parseFloat(form['res-total-value'].value),
+        status: form['res-status'].value,
+        sourcePlatform: form['res-source-platform'].value,
     };
-    if (!reservationData.guestName || !reservationData.startDate || !reservationData.endDate || isNaN(reservationData.totalValue)) {
-        alert("Por favor, preencha todos os campos corretamente.");
-        return;
-    }
-    if (reservationData.endDate < reservationData.startDate) {
-        alert("A data de saída não pode ser anterior à data de entrada.");
-        return;
-    }
+
     try {
-        const dataToSave = {
-            ...reservationData,
-            startDate: Timestamp.fromDate(reservationData.startDate),
-            endDate: Timestamp.fromDate(reservationData.endDate),
-        };
         if (reservationId) {
-            await db.collection('reservations').doc(reservationId).update(dataToSave);
+            await db.collection('reservations').doc(reservationId).update(reservationData);
         } else {
-            dataToSave.amountPaid = 0;
-            await db.collection('reservations').add(dataToSave);
+            reservationData.amountPaid = 0;
+            await db.collection('reservations').add(reservationData);
         }
         closeModal('reservation-modal');
     } catch (error) {
         console.error("Erro ao salvar reserva: ", error);
-        alert("Não foi possível salvar a reserva. Tente novamente.");
+        alert("Não foi possível salvar a reserva.");
     }
 }
 
@@ -95,10 +106,7 @@ async function handleRegisterPayment(event) {
     const reservationId = form['payment-reservation-id'].value;
     const paymentAmount = parseFloat(form['payment-amount'].value);
 
-    if (isNaN(paymentAmount) || paymentAmount <= 0) {
-        alert("Por favor, insira um valor de pagamento válido.");
-        return;
-    }
+    if (isNaN(paymentAmount) || paymentAmount <= 0) return;
 
     const reservationRef = db.collection('reservations').doc(reservationId);
     
@@ -126,11 +134,43 @@ async function handleRegisterPayment(event) {
         closeModal('payment-modal');
     } catch (error) {
         console.error("Erro ao registrar pagamento: ", error);
-        alert("Ocorreu um erro ao registrar o pagamento. Tente novamente.");
     }
 }
 
-// NOVA FUNÇÃO: Salva as configurações no Firebase
+async function handleSaveTransaction(event) {
+    event.preventDefault();
+    const form = event.target;
+    const type = form['transaction-type'].value;
+    const transactionData = {
+        description: form['tx-description'].value,
+        amount: parseFloat(form['tx-amount'].value),
+        date: Timestamp.fromDate(new Date(form['tx-date'].value + 'T00:00:00')),
+        type: type
+    };
+    if (type === 'expense') {
+        transactionData.category = form['tx-category'].value;
+    } else {
+        transactionData.category = 'Receita Avulsa';
+    }
+
+    try {
+        await db.collection('financial_transactions').add(transactionData);
+        closeModal('transaction-modal');
+    } catch (error) {
+        console.error("Erro ao salvar transação: ", error);
+    }
+}
+
+async function handleDeleteTransaction(id) {
+    if (confirm('Tem certeza que deseja excluir este lançamento?')) {
+        try {
+            await db.collection('financial_transactions').doc(id).delete();
+        } catch (error) {
+            console.error("Erro ao excluir transação: ", error);
+        }
+    }
+}
+
 async function handleSaveSettings(event) {
     event.preventDefault();
     const form = event.target;
@@ -138,11 +178,11 @@ async function handleSaveSettings(event) {
         shareArthur: parseFloat(form['setting-share-arthur'].value),
         shareLucas: parseFloat(form['setting-share-lucas'].value),
         shareFundoCaixa: parseFloat(form['setting-share-caixa'].value),
-        fundoReservaFixo: parseFloat(form['setting-reserva-fixo'].value)
+        fundoReservaFixo: parseFloat(form['setting-reserve-fund'].value)
     };
 
     const totalShare = newSettings.shareArthur + newSettings.shareLucas + newSettings.shareFundoCaixa;
-    if (totalShare !== 100) {
+    if (Math.abs(totalShare - 100) > 0.01) { // Lida com imprecisão de float
         alert(`A soma das porcentagens (Shares Arthur, Lucas e Fundo de Caixa) deve ser 100, mas é ${totalShare}.`);
         return;
     }
@@ -152,11 +192,11 @@ async function handleSaveSettings(event) {
         alert('Configurações salvas com sucesso!');
     } catch (error) {
         console.error("Erro ao salvar configurações: ", error);
-        alert("Não foi possível salvar as configurações.");
     }
 }
 
-// --- LÓGICA PRINCIPAL DO APP ---
+
+// --- LÓGICA PRINCIPAL E EVENT LISTENERS ---
 function initializeApp() {
     setupEventListeners();
     listenForData();
@@ -164,32 +204,48 @@ function initializeApp() {
 }
 
 function setupEventListeners() {
+    // Auth
     document.getElementById('logout-button').addEventListener('click', () => auth.signOut());
+    document.getElementById('login-button')?.addEventListener('click', () => auth.signInWithPopup(provider));
+    
+    // Navegação
     document.getElementById('prev-month-btn').addEventListener('click', () => navigateMonth(-1));
     document.getElementById('next-month-btn').addEventListener('click', () => navigateMonth(1));
-    document.getElementById('reservation-form').addEventListener('submit', handleAddOrUpdateReservation);
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => showTab(button.getAttribute('data-tab')));
+    });
+
+    // Ações de Adicionar
+    document.getElementById('calendar-add-reservation-btn').addEventListener('click', () => openReservationModal(null, reservations));
+    document.getElementById('reservations-add-reservation-btn').addEventListener('click', () => openReservationModal(null, reservations));
+    document.getElementById('add-revenue-btn').addEventListener('click', () => openTransactionModal('revenue'));
+    document.getElementById('add-expense-btn').addEventListener('click', () => openTransactionModal('expense'));
+
+    // Submissão de Forms
+    document.getElementById('reservation-form').addEventListener('submit', handleSaveReservation);
     document.getElementById('payment-form').addEventListener('submit', handleRegisterPayment);
+    document.getElementById('transaction-form').addEventListener('submit', handleSaveTransaction);
     document.getElementById('settings-form').addEventListener('submit', handleSaveSettings);
 
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const tabId = button.getAttribute('data-tab');
-            showTab(tabId);
-        });
+    // Fechar Modais
+    document.querySelectorAll('.close-modal-btn').forEach(button => {
+        button.addEventListener('click', () => closeModal(button.getAttribute('data-modal-id')));
     });
 
-    const addReservationBtn = document.getElementById('add-reservation-btn');
-    addReservationBtn.addEventListener('click', () => {
-        openReservationModal(null, reservations, null);
+    // Event Delegation para botões em tabelas
+    document.getElementById('transactions-table-body').addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-transaction-btn');
+        if (deleteBtn) {
+            handleDeleteTransaction(deleteBtn.getAttribute('data-id'));
+        }
     });
     
-    const closeModalButtons = document.querySelectorAll('.close-modal-btn');
-    closeModalButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const modalId = button.getAttribute('data-modal-id');
-            closeModal(modalId);
-        });
+    document.getElementById('reservations-table-body').addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-reservation-btn');
+        if (editBtn) {
+            const reservation = reservations.find(r => r.id === editBtn.getAttribute('data-id'));
+            if(reservation) openReservationModal(reservation, reservations);
+        }
     });
 }
 
@@ -204,12 +260,10 @@ function listenForData() {
             settings = doc.data();
             populateSettingsForm(settings);
             runCalculationsAndUpdateUI();
-        } else {
-            console.log("Documento de configurações não encontrado! Crie-o no Firebase.");
         }
     });
 
-    db.collection('financial_transactions').orderBy('date', 'desc').onSnapshot(snapshot => {
+    db.collection('financial_transactions').onSnapshot(snapshot => {
         transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         runCalculationsAndUpdateUI();
     });
@@ -221,17 +275,17 @@ function listenForData() {
     });
 }
 
-// NOVA FUNÇÃO CENTRALIZADA: Roda todos os cálculos e atualiza a UI
 function runCalculationsAndUpdateUI() {
-    if (!settings) return; // Não roda os cálculos se as configurações não foram carregadas
+    if (!settings || transactions.length === 0) return;
     const summary = calculateFinancialSummary(transactions);
     const forecast = calculateForecast(reservations);
     const settlement = calculateSettlement(summary, settings);
+    const fundoCaixa = settlement.fundoCaixaTeorico; // Usando o cálculo do settlement
     
-    updateAllUI(transactions, reservations, summary, forecast, settlement);
+    updateAllUI({ transactions, reservations, summary, forecast, settlement, fundoCaixa });
 }
 
-// --- PONTO DE ENTRADA PRINCIPAL E AUTENTICAÇÃO ---
+// --- PONTO DE ENTRADA PRINCIPAL ---
 auth.onAuthStateChanged(user => {
     const loginContainer = document.getElementById('login-container');
     const appContainer = document.getElementById('app');
@@ -247,11 +301,13 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-document.getElementById('login-button')?.addEventListener('click', () => {
-    auth.signInWithPopup(provider).catch(error => console.error("Erro no login:", error));
-});
-
-// Expõe funções na window para serem chamadas por eventos que ainda não foram migrados
-// ou que são chamados de dentro de HTML gerado dinamicamente.
-window.openReservationModal = (id, startDate) => openReservationModal(id, reservations, startDate);
-window.openPaymentModal = (id) => openPaymentModal(id, reservations);
+// --- EXPOSIÇÃO DE FUNÇÕES PARA A JANELA (usado por código dinâmico) ---
+window.openReservationModal = (reservationId, startDate) => {
+    const reservation = reservationId ? reservations.find(r => r.id === reservationId) : null;
+    openReservationModal(reservation, reservations, startDate);
+};
+window.editReservation = (reservationId) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if(reservation) openReservationModal(reservation, reservations);
+};
+window.openPaymentModal = (reservationId) => openPaymentModal(reservationId, reservations);

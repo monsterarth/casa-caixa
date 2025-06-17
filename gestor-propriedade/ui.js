@@ -1,32 +1,105 @@
-// A variável do gráfico pertence à UI, então ela fica aqui.
 let financialChart = null;
 
-// ATUALIZADO: Recebe o "settlement" e passa para a função de UI do dashboard
-export function updateAllUI(transactions, reservations, summary, forecast, settlement) {
-    updateDashboardUI(summary, forecast, settlement); // Passa o settlement adiante
-    updateFinancialChart(summary);
-    renderTransactionsTable(transactions);
+// --- FUNÇÕES DE RENDERIZAÇÃO PRINCIPAIS ---
+
+export function updateAllUI(data) {
+    updateDashboardUI(data.summary, data.forecast, data.fundoCaixa);
+    updateFinancialChart(data.summary);
+    renderTransactionsTable(data.transactions);
+    renderReservationsTable(data.reservations);
+    renderSettlementTab(data.settlement);
 }
 
-// ATUALIZADO: Recebe e usa os dados do "settlement" para preencher os novos campos
-export function updateDashboardUI(summary, forecast, settlement) {
+export function updateDashboardUI(summary, forecast, fundoCaixa) {
     const el = id => document.getElementById(id);
-    
-    // Cards principais
+    el('fundoCaixa').textContent = formatCurrency(fundoCaixa);
     el('cashBalance').textContent = formatCurrency(summary.cashBalance);
-    el('netProfit').textContent = formatCurrency(summary.netProfitToDivide);
     el('forecast').textContent = formatCurrency(forecast);
-
-    // Detalhamento para Divisão
     el('confirmedRevenue').textContent = formatCurrency(summary.confirmedRevenue);
     el('condominiumExpenses').textContent = formatCurrency(summary.condominiumExpenses);
-    
-    // Novos valores do Acerto de Contas
-    el('settlement-arthur-share').textContent = formatCurrency(settlement.parteArthur);
-    el('settlement-arthur-total').textContent = formatCurrency(settlement.parteArthur); // Ajustar futuramente se houver descontos pessoais
-    el('settlement-lucas-share').textContent = formatCurrency(settlement.parteLucas);
-    el('settlement-lucas-total').textContent = formatCurrency(settlement.parteLucas); // Ajustar futuramente se houver descontos pessoais
 }
+
+export function renderSettlementTab(settlement) {
+    const el = id => document.getElementById(id);
+    el('arthur-share').textContent = formatCurrency(settlement.cotaArthur);
+    el('arthur-expenses').textContent = formatCurrency(settlement.despesasArthur);
+    el('arthur-balance').textContent = formatCurrency(settlement.saldoFinalArthur);
+    el('lucas-share').textContent = formatCurrency(settlement.cotaLucas);
+    el('lucas-expenses').textContent = formatCurrency(settlement.despesasLucas);
+    el('lucas-balance').textContent = formatCurrency(settlement.saldoFinalLucas);
+}
+
+export function populateSettingsForm(settings) {
+    if (!settings) return;
+    const el = id => document.getElementById(id);
+    el('setting-share-arthur').value = settings.shareArthur || 0;
+    el('setting-share-lucas').value = settings.shareLucas || 0;
+    el('setting-share-caixa').value = settings.shareFundoCaixa || 0;
+    el('setting-reserve-fund').value = settings.fundoReservaFixo || 0;
+}
+
+// --- RENDERIZAÇÃO DE TABELAS ---
+
+export function renderTransactionsTable(allTransactions) {
+    const tableBody = document.getElementById('transactions-table-body');
+    if (!tableBody) return;
+    tableBody.innerHTML = allTransactions.sort((a, b) => b.date.toDate() - a.date.toDate()).map(tx => {
+        const isRevenue = tx.type === 'revenue';
+        const date = tx.date.toDate().toLocaleDateString('pt-BR');
+        return `
+            <tr class="hover:bg-slate-50">
+                <td class="p-3">${tx.description}</td>
+                <td class="p-3 font-medium ${isRevenue ? 'text-green-600' : 'text-red-600'}">
+                    ${isRevenue ? '+' : '-'} ${formatCurrency(tx.amount)}
+                </td>
+                <td class="p-3 text-slate-600">${tx.category || 'N/A'}</td>
+                <td class="p-3 text-slate-600">${date}</td>
+                <td class="p-3 text-center">
+                    <button class="text-red-500 hover:text-red-700 delete-transaction-btn" data-id="${tx.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+export function renderReservationsTable(allReservations) {
+    const tableBody = document.getElementById('reservations-table-body');
+    if(!tableBody) return;
+    tableBody.innerHTML = allReservations.sort((a,b) => b.startDate.toDate() - a.startDate.toDate()).map(res => {
+        const start = res.startDate.toDate().toLocaleDateString('pt-BR');
+        const end = res.endDate.toDate().toLocaleDateString('pt-BR');
+        const statusColors = {
+            'Confirmada': 'bg-green-100 text-green-800',
+            'Pré-reserva': 'bg-yellow-100 text-yellow-800',
+            'Cancelada': 'bg-red-100 text-red-800',
+            'Finalizada': 'bg-blue-100 text-blue-800',
+            'Em andamento': 'bg-indigo-100 text-indigo-800'
+        };
+        const statusColor = statusColors[res.status] || 'bg-slate-100 text-slate-800';
+
+        return `
+            <tr class="hover:bg-slate-50">
+                <td class="p-3 font-medium">${res.guestName}</td>
+                <td class="p-3">${start} - ${end}</td>
+                <td class="p-3">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">
+                        ${res.status}
+                    </span>
+                </td>
+                <td class="p-3 text-right">${formatCurrency(res.totalValue)}</td>
+                <td class="p-3 text-center">
+                    <button class="text-sky-500 hover:text-sky-700 edit-reservation-btn" data-id="${res.id}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// --- GRÁFICOS E MODAIS ---
 
 export function updateFinancialChart(summary) {
     const ctx = document.getElementById('financialCompositionChart')?.getContext('2d');
@@ -52,23 +125,77 @@ export function updateFinancialChart(summary) {
     }
 }
 
-export function renderTransactionsTable(allTransactions) {
-    const tableBody = document.getElementById('transactions-table-body');
-    if (!tableBody) return;
-    tableBody.innerHTML = allTransactions.map(tx => {
-        const isRevenue = tx.type === 'revenue';
-        const date = tx.date && tx.date.toDate ? tx.date.toDate().toLocaleDateString('pt-BR') : 'Data inválida';
-        return `
-            <tr class="hover:bg-slate-50">
-                <td class="p-3">${tx.description}</td>
-                <td class="p-3 font-medium ${isRevenue ? 'text-green-600' : 'text-red-600'}">
-                    ${isRevenue ? '+' : '-'} ${formatCurrency(tx.amount)}
-                </td>
-                <td class="p-3 text-slate-600">${tx.category || 'N/A'}</td>
-                <td class="p-3 text-slate-600">${date}</td>
-            </tr>
-        `;
-    }).join('');
+export function openReservationModal(reservation, allReservations) {
+    const modal = document.getElementById('reservation-modal');
+    const form = document.getElementById('reservation-form');
+    form.reset();
+
+    if (reservation) { // Modo Edição
+        form['reservation-id'].value = reservation.id;
+        document.getElementById('reservation-modal-title').textContent = "Editar Reserva";
+        
+        form['res-status'].value = reservation.status;
+        form['res-source-platform'].value = reservation.sourcePlatform;
+        form['res-guest-name'].value = reservation.guestName;
+        form['res-property'].value = reservation.propertyId;
+        form['res-start-date'].value = reservation.startDate.toDate().toISOString().split('T')[0];
+        form['res-end-date'].value = reservation.endDate.toDate().toISOString().split('T')[0];
+        form['res-total-value'].value = reservation.totalValue;
+
+        const amountPaid = reservation.amountPaid || 0;
+        const amountDue = reservation.totalValue - amountPaid;
+        document.getElementById('details-total').textContent = formatCurrency(reservation.totalValue);
+        document.getElementById('details-paid').textContent = formatCurrency(amountPaid);
+        document.getElementById('details-due').textContent = formatCurrency(amountDue);
+        
+        const registerPaymentBtn = document.getElementById('register-payment-btn');
+        registerPaymentBtn.onclick = () => window.openPaymentModal(reservation.id);
+        document.getElementById('financial-details-section').classList.remove('hidden');
+
+    } else { // Modo Criação
+        form['reservation-id'].value = '';
+        document.getElementById('reservation-modal-title').textContent = "Nova Reserva";
+        document.getElementById('financial-details-section').classList.add('hidden');
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+export function openPaymentModal(reservationId, allReservations) {
+    const reservation = allReservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+
+    const modal = document.getElementById('payment-modal');
+    const form = document.getElementById('payment-form');
+    form.reset();
+    
+    document.getElementById('payment-reservation-id').value = reservationId;
+    document.getElementById('payment-guest-name').textContent = reservation.guestName;
+    const amountDue = reservation.totalValue - (reservation.amountPaid || 0);
+    document.getElementById('payment-amount').value = amountDue > 0 ? amountDue.toFixed(2) : '0.00';
+    
+    closeModal('reservation-modal');
+    modal.classList.remove('hidden');
+}
+
+export function openTransactionModal(type) {
+    const modal = document.getElementById('transaction-modal');
+    const form = document.getElementById('transaction-form');
+    form.reset();
+    document.getElementById('transaction-id').value = '';
+
+    const title = document.getElementById('transaction-modal-title');
+    const categoryWrapper = document.getElementById('category-wrapper');
+    document.getElementById('transaction-type').value = type;
+
+    if (type === 'revenue') {
+        title.textContent = "Nova Receita";
+        categoryWrapper.classList.add('hidden');
+    } else {
+        title.textContent = "Nova Despesa";
+        categoryWrapper.classList.remove('hidden');
+    }
+    modal.classList.remove('hidden');
 }
 
 export function renderCalendar(currentDate, reservations) {
@@ -94,13 +221,12 @@ export function renderCalendar(currentDate, reservations) {
         
         dayCell.addEventListener('click', (e) => {
             if (e.target.closest('.event-chip')) return;
-            // A chamada para openReservationModal agora é feita pelo app.js através da window
-            window.openReservationModal(null, today.toISOString().split('T')[0]);
+            window.openReservationModal(null);
         });
 
         const eventsContainer = dayCell.querySelector('.events-container');
         const dayReservations = reservations.filter(res => {
-            if (!res.startDate || !res.endDate) return false;
+            if (!res.startDate || !res.endDate || res.status === 'Cancelada') return false;
             const start = res.startDate.toDate(); start.setHours(0, 0, 0, 0);
             const end = res.endDate.toDate(); end.setHours(0, 0, 0, 0);
             return today >= start && today <= end;
@@ -111,75 +237,15 @@ export function renderCalendar(currentDate, reservations) {
             const eventDiv = document.createElement('div');
             eventDiv.className = `event-chip text-white text-xs p-1 rounded-md truncate cursor-pointer ${propColor}`;
             eventDiv.textContent = res.guestName;
-            eventDiv.addEventListener('click', () => {
-                // A chamada para openReservationModal agora é feita pelo app.js através da window
-                window.openReservationModal(res.id);
-            });
+            eventDiv.addEventListener('click', () => window.editReservation(res.id));
             eventsContainer.appendChild(eventDiv);
         });
         grid.appendChild(dayCell);
     }
 }
 
-export function openReservationModal(reservationId = null, allReservations, startDate = null) {
-    const modal = document.getElementById('reservation-modal');
-    const form = document.getElementById('reservation-form');
-    form.reset();
-    document.getElementById('reservation-id').value = reservationId || '';
 
-    const financialSection = document.getElementById('financial-details-section');
-
-    if (reservationId) {
-        const reservation = allReservations.find(r => r.id === reservationId);
-        if (reservation) {
-            form['res-guest-name'].value = reservation.guestName;
-            form['res-property'].value = reservation.propertyId;
-            form['res-start-date'].value = reservation.startDate.toDate().toISOString().split('T')[0];
-            form['res-end-date'].value = reservation.endDate.toDate().toISOString().split('T')[0];
-            form['res-total-value'].value = reservation.totalValue;
-
-            document.getElementById('reservation-modal-title').textContent = "Editar Reserva";
-            
-            const amountPaid = reservation.amountPaid || 0;
-            const amountDue = reservation.totalValue - amountPaid;
-            document.getElementById('details-total').textContent = formatCurrency(reservation.totalValue);
-            document.getElementById('details-paid').textContent = formatCurrency(amountPaid);
-            document.getElementById('details-due').textContent = formatCurrency(amountDue);
-            
-            const registerPaymentBtn = document.getElementById('register-payment-btn');
-            // A chamada para openPaymentModal também será exposta na window
-            registerPaymentBtn.onclick = () => window.openPaymentModal(reservationId);
-            financialSection.classList.remove('hidden');
-
-        }
-    } else {
-        document.getElementById('reservation-modal-title').textContent = "Nova Reserva";
-        financialSection.classList.add('hidden');
-        if (startDate) {
-            document.getElementById('res-start-date').value = startDate;
-        }
-    }
-    
-    modal.classList.remove('hidden');
-}
-
-export function openPaymentModal(reservationId, allReservations) {
-    const reservation = allReservations.find(r => r.id === reservationId);
-    if (!reservation) return;
-
-    const modal = document.getElementById('payment-modal');
-    const form = document.getElementById('payment-form');
-    form.reset();
-
-    const amountDue = reservation.totalValue - (reservation.amountPaid || 0);
-
-    document.getElementById('payment-reservation-id').value = reservationId;
-    document.getElementById('payment-guest-name').textContent = reservation.guestName;
-    document.getElementById('payment-amount').value = amountDue > 0 ? amountDue.toFixed(2) : '0.00';
-    
-    closeModal('reservation-modal');
-    modal.classList.remove('hidden');
-}
+// --- FUNÇÕES UTILITÁRIAS ---
 
 export function closeModal(modalId) {
     document.getElementById(modalId)?.classList.add('hidden');
@@ -199,14 +265,4 @@ export function showTab(tabId) {
 
 export function formatCurrency(value) { 
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0); 
-}
-
-// NOVA FUNÇÃO: Preenche o formulário de configurações com os dados do Firebase
-export function populateSettingsForm(settings) {
-    if (!settings) return;
-    const el = id => document.getElementById(id);
-    el('setting-share-arthur').value = settings.shareArthur || 0;
-    el('setting-share-lucas').value = settings.shareLucas || 0;
-    el('setting-share-caixa').value = settings.shareFundoCaixa || 0;
-    el('setting-reserva-fixo').value = settings.fundoReservaFixo || 0;
 }

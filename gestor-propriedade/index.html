@@ -6,6 +6,7 @@
     <title>Gestor de Propriedades</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="text-slate-800">
@@ -17,34 +18,28 @@
     <div id="app" class="container mx-auto p-4 md:p-8 hidden">
         <header class="mb-8">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                <div>
-                    <h1 class="text-3xl font-bold text-slate-900">Gestor de Propriedades</h1>
-                    <p id="welcome-message" class="text-slate-600 mt-1">Bem-vindo(a).</p>
-                </div>
-                <div class="flex items-center gap-4 text-sm text-slate-500 mt-4 md:mt-0">
-                    <span id="user-email"></span>
-                    <button id="logout-button" class="text-red-500 hover:text-red-700 font-medium"><i class="fas fa-sign-out-alt mr-1"></i>Sair</button>
-                </div>
+                <div><h1 class="text-3xl font-bold text-slate-900">Gestor de Propriedades</h1><p id="welcome-message" class="text-slate-600 mt-1">Bem-vindo(a).</p></div>
+                <div class="flex items-center gap-4 text-sm text-slate-500 mt-4 md:mt-0"><span id="user-email"></span><button id="logout-button" class="text-red-500 hover:text-red-700 font-medium"><i class="fas fa-sign-out-alt mr-1"></i>Sair</button></div>
             </div>
         </header>
 
         <nav class="flex flex-wrap gap-2 mb-8 bg-white p-2 rounded-lg shadow-sm">
             <button class="tab-button active" data-tab="dashboard"><i class="fas fa-chart-pie mr-2"></i>Dashboard</button>
             <button class="tab-button" data-tab="calendar"><i class="fas fa-calendar-alt mr-2"></i>Calendário</button>
+            <button class="tab-button" data-tab="reservations"><i class="fas fa-list-check mr-2"></i>Reservas</button>
             <button class="tab-button" data-tab="transactions"><i class="fas fa-exchange-alt mr-2"></i>Lançamentos</button>
+            <button class="tab-button" data-tab="settlement"><i class="fas fa-handshake mr-2"></i>Acerto de Contas</button>
             <button class="tab-button" data-tab="settings"><i class="fas fa-cog mr-2"></i>Configurações</button>
-
-
         </nav>
 
         <main>
-            <div id="dashboard-tab" class="tab-content">
+            <div id="dashboard-tab" class="tab-content active">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 space-y-6">
+                    <div class="lg:col-span-3 space-y-6">
                          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="stat-card bg-white p-6 rounded-xl shadow-md border-l-4 border-sky-400">
-                                <h3 class="text-slate-500 text-lg font-medium">LUCRO LÍQUIDO A DIVIDIR</h3>
-                                <p id="netProfit" class="text-4xl font-bold text-slate-900 mt-2">R$ 0,00</p>
+                            <div class="stat-card bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-400">
+                                <h3 class="text-slate-500 text-lg font-medium">Fundo de Caixa (Teórico)</h3>
+                                <p id="fundoCaixa" class="text-4xl font-bold text-slate-900 mt-2">R$ 0,00</p>
                             </div>
                             <div class="stat-card bg-white p-6 rounded-xl shadow-md">
                                 <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (Real)</h3>
@@ -55,42 +50,25 @@
                                 <p id="forecast" class="text-3xl font-bold text-amber-500 mt-2">R$ 0,00</p>
                             </div>
                         </div>
-                        <div class="bg-white p-6 rounded-xl shadow-md">
-                            <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento para Divisão</h3>
-                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <p class="text-slate-500">Receita Confirmada</p>
-                                    <p id="confirmedRevenue" class="text-2xl font-bold text-green-600">R$ 0,00</p>
-                                </div>
-                            <div class="bg-white p-6 rounded-xl shadow-md">
-                                <h3 class="text-xl font-semibold text-slate-800 mb-4">Acerto de Contas dos Sócios</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div class="bg-sky-50 p-4 rounded-lg">
-                                        <p class="font-bold text-sky-800 text-lg">ARTHUR</p>
-                                        <div class="mt-2 space-y-1">
-                                            <p class="text-sm text-slate-600">Parte do Lucro (50%): <strong id="settlement-arthur-share" class="text-slate-900">R$ 0,00</strong></p>
-                                            <p class="text-lg text-slate-600">Valor a Receber: <strong id="settlement-arthur-total" class="text-green-600 text-xl">R$ 0,00</strong></p>
-                                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                                <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento para Divisão</h3>
+                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <p class="text-slate-500">Receita Confirmada</p>
+                                        <p id="confirmedRevenue" class="text-2xl font-bold text-green-600">R$ 0,00</p>
                                     </div>
-                                    <div class="bg-indigo-50 p-4 rounded-lg">
-                                        <p class="font-bold text-indigo-800 text-lg">LUCAS</p>
-                                        <div class="mt-2 space-y-1">
-                                            <p class="text-sm text-slate-600">Parte do Lucro (50%): <strong id="settlement-lucas-share" class="text-slate-900">R$ 0,00</strong></p>
-                                            <p class="text-lg text-slate-600">Valor a Receber: <strong id="settlement-lucas-total" class="text-green-600 text-xl">R$ 0,00</strong></p>
-                                        </div>
+                                    <div>
+                                        <p class="text-slate-500">Despesas do Condomínio</p>
+                                        <p id="condominiumExpenses" class="text-2xl font-bold text-red-600">R$ 0,00</p>
                                     </div>
                                 </div>
                             </div>
-                                <div>
-                                    <p class="text-slate-500">Despesas do Condomínio</p>
-                                    <p id="condominiumExpenses" class="text-2xl font-bold text-red-600">R$ 0,00</p>
-                                </div>
+                            <div class="bg-white p-6 rounded-xl shadow-md">
+                                <h3 class="text-xl font-semibold text-slate-800 mb-4">Composição Financeira</h3>
+                                <div class="h-64"><canvas id="financialCompositionChart"></canvas></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Composição Financeira</h3>
-                        <div class="h-64"><canvas id="financialCompositionChart"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -104,8 +82,8 @@
                             <button id="next-month-btn" class="p-2 rounded-full hover:bg-slate-100 transition-colors"><i class="fas fa-chevron-right"></i></button>
                         </div>
                         <div>
-                            <button id="add-reservation-btn" class="w-full bg-sky-500 ...">
-                                 <i class="fas fa-plus mr-2"></i>Nova Reserva
+                             <button id="calendar-add-reservation-btn" class="w-full bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>Nova Reserva
                             </button>
                         </div>
                     </div>
@@ -115,47 +93,96 @@
                     <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
                 </div>
             </div>
+            
+            <div id="reservations-tab" class="tab-content">
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                     <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <h2 class="text-2xl font-semibold text-slate-800">Gerenciador de Reservas</h2>
+                        <button id="reservations-add-reservation-btn" class="w-full sm:w-auto bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Nova Reserva
+                        </button>
+                     </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-slate-600">
+                                <tr>
+                                    <th class="p-3">Hóspede</th>
+                                    <th class="p-3">Período</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3 text-right">Valor Total</th>
+                                    <th class="p-3 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservations-table-body" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
             <div id="transactions-tab" class="tab-content">
                  <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                     <div class="flex justify-between items-center mb-4">
+                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                         <h2 class="text-2xl font-semibold text-slate-800">Histórico de Lançamentos</h2>
+                        <div class="flex gap-2">
+                            <button id="add-revenue-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors w-full sm:w-auto"><i class="fas fa-plus mr-2"></i>Receita</button>
+                            <button id="add-expense-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors w-full sm:w-auto"><i class="fas fa-minus mr-2"></i>Despesa</button>
                         </div>
-                            <div id="settings-tab" class="tab-content">
-            <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                <h2 class="text-2xl font-semibold text-slate-800 mb-6">Configurações Gerais</h2>
-                <form id="settings-form" class="max-w-lg space-y-4">
-                    <div>
-                        <label for="setting-share-arthur" class="block text-sm font-medium text-slate-700">Share Arthur (%)</label>
-                        <input type="number" id="setting-share-arthur" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md">
-                    </div>
-                    <div>
-                        <label for="setting-share-lucas" class="block text-sm font-medium text-slate-700">Share Lucas (%)</label>
-                        <input type="number" id="setting-share-lucas" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md">
-                    </div>
-                    <div>
-                        <label for="setting-share-caixa" class="block text-sm font-medium text-slate-700">Repasse Fundo de Caixa (%)</label>
-                        <input type="number" id="setting-share-caixa" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md">
-                    </div>
-                    <div>
-                        <label for="setting-reserva-fixo" class="block text-sm font-medium text-slate-700">Fundo de Reserva Fixo (R$)</label>
-                        <input type="number" step="0.01" id="setting-reserva-fixo" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md">
-                    </div>
-                    <div class="pt-4">
-                        <button type="submit" class="w-full bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600">
-                            Salvar Configurações
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </main>
+                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead class="bg-slate-50 text-slate-600"><tr><th class="p-3">Descrição</th><th class="p-3">Valor</th><th class="p-3">Categoria</th><th class="p-3">Data</th></tr></thead>
+                            <thead class="bg-slate-50 text-slate-600"><tr><th class="p-3">Descrição</th><th class="p-3">Valor</th><th class="p-3">Categoria</th><th class="p-3">Data</th><th class="p-3 text-center">Ações</th></tr></thead>
                             <tbody id="transactions-table-body" class="divide-y divide-slate-200"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <div id="settlement-tab" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-4">Sócio: Arthur</h2>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center"><span class="text-slate-600">Cota do Lucro (Teórica):</span><span id="arthur-share" class="font-bold text-lg">R$ 0,00</span></div>
+                            <div class="flex justify-between items-center"><span class="text-slate-600">Despesas Pessoais (Adiantado):</span><span id="arthur-expenses" class="font-bold text-lg text-red-500">R$ 0,00</span></div>
+                            <hr class="my-4">
+                            <div class="flex justify-between items-center text-xl"><span class="font-semibold text-slate-800">Saldo a Receber (Final):</span><span id="arthur-balance" class="font-bold text-green-600">R$ 0,00</span></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-4">Sócio: Lucas</h2>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center"><span class="text-slate-600">Cota do Lucro (Teórica):</span><span id="lucas-share" class="font-bold text-lg">R$ 0,00</span></div>
+                            <div class="flex justify-between items-center"><span class="text-slate-600">Despesas Pessoais (Adiantado):</span><span id="lucas-expenses" class="font-bold text-lg text-red-500">R$ 0,00</span></div>
+                            <hr class="my-4">
+                            <div class="flex justify-between items-center text-xl"><span class="font-semibold text-slate-800">Saldo a Receber (Final):</span><span id="lucas-balance" class="font-bold text-green-600">R$ 0,00</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <div class="bg-white p-6 rounded-xl shadow-md max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-semibold text-slate-800 mb-6">Configurações Financeiras</h2>
+                    <form id="settings-form">
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-medium text-slate-700 border-b pb-2">Divisão do Faturamento (%)</h3>
+                            <p class="text-sm text-slate-500">Defina como cada R$ 100 de lucro líquido é dividido. A soma deve ser 100%.</p>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div><label for="setting-share-arthur" class="block text-sm font-medium">Arthur</label><input type="number" step="0.01" id="setting-share-arthur" class="input-style"></div>
+                                <div><label for="setting-share-lucas" class="block text-sm font-medium">Lucas</label><input type="number" step="0.01" id="setting-share-lucas" class="input-style"></div>
+                                <div><label for="setting-share-caixa" class="block text-sm font-medium">Fundo de Caixa</label><input type="number" step="0.01" id="setting-share-caixa" class="input-style"></div>
+                            </div>
+                             <h3 class="text-lg font-medium text-slate-700 border-b pb-2 pt-4">Segurança</h3>
+                            <div>
+                                <label for="setting-reserve-fund" class="block text-sm font-medium">Fundo de Reserva Fixo (R$)</label>
+                                <p class="text-sm text-slate-500">Valor mínimo que deve ser mantido no caixa para emergências.</p>
+                                <input type="number" step="100" id="setting-reserve-fund" class="input-style">
+                            </div>
+                        </div>
+                        <div class="flex justify-end mt-8">
+                            <button type="submit" class="bg-sky-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-sky-600">Salvar Configurações</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </main>
@@ -163,25 +190,19 @@
 
     <div id="reservation-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4 overflow-y-auto" style="max-height: 90vh;">
-            <h2 id="reservation-modal-title" class="text-2xl font-bold mb-4">Nova Reserva</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="reservation-modal-title" class="text-2xl font-bold">Nova Reserva</h2>
+                <button type="button" class="close-modal-btn text-2xl text-slate-500 hover:text-slate-800" data-modal-id="reservation-modal">&times;</button>
+            </div>
             
             <div id="financial-details-section" class="hidden mb-6 bg-slate-50 p-4 rounded-lg">
-                <h3 class="text-lg font-semibold text-slate-800 mb-3">Resumo Financeiro da Reserva</h3>
+                 <h3 class="text-lg font-semibold text-slate-800 mb-3">Resumo Financeiro da Reserva</h3>
                 <div class="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                        <p class="text-sm text-slate-500">Valor Total</p>
-                        <p id="details-total" class="font-bold text-lg text-slate-900">R$ 0,00</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-slate-500">Valor Pago</p>
-                        <p id="details-paid" class="font-bold text-lg text-green-600">R$ 0,00</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-slate-500">Saldo Devedor</p>
-                        <p id="details-due" class="font-bold text-lg text-red-600">R$ 0,00</p>
-                    </div>
+                    <div><p class="text-sm text-slate-500">Valor Total</p><p id="details-total" class="font-bold text-lg text-slate-900">R$ 0,00</p></div>
+                    <div><p class="text-sm text-slate-500">Valor Pago</p><p id="details-paid" class="font-bold text-lg text-green-600">R$ 0,00</p></div>
+                    <div><p class="text-sm text-slate-500">Saldo Devedor</p><p id="details-due" class="font-bold text-lg text-red-600">R$ 0,00</p></div>
                 </div>
-                <div class="mt-4 text-center">
+                <div id="payment-button-wrapper" class="mt-4 text-center">
                     <button id="register-payment-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors w-full"><i class="fas fa-dollar-sign mr-2"></i>Registrar Pagamento</button>
                 </div>
             </div>
@@ -189,16 +210,30 @@
             <form id="reservation-form">
                 <input type="hidden" id="reservation-id">
                 <div class="space-y-4">
-                    <div><label for="res-guest-name" class="block text-sm font-medium text-slate-700">Nome do Hóspede</label><input type="text" id="res-guest-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
-                     <div><label for="res-property" class="block text-sm font-medium text-slate-700">Propriedade</label><select id="res-property" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"><option value="estancia_do_vale">Estância do Vale</option><option value="vale_do_sabia">Vale do Sabiá</option></select></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label for="res-start-date" class="block text-sm font-medium text-slate-700">Data de Entrada</label><input type="date" id="res-start-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
-                        <div><label for="res-end-date" class="block text-sm font-medium text-slate-700">Data de Saída</label><input type="date" id="res-end-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                        <div>
+                            <label for="res-status" class="block text-sm font-medium text-slate-700">Status</label>
+                            <select id="res-status" required class="input-style">
+                                <option value="Pré-reserva">Pré-reserva</option><option value="Confirmada">Confirmada</option><option value="Em andamento">Em andamento</option><option value="Finalizada">Finalizada</option><option value="Cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="res-source-platform" class="block text-sm font-medium text-slate-700">Plataforma</label>
+                            <select id="res-source-platform" required class="input-style">
+                                <option value="Direto">Direto</option><option value="Airbnb">Airbnb</option><option value="Booking">Booking</option><option value="Outro">Outro</option>
+                            </select>
+                        </div>
                     </div>
-                    <div><label for="res-total-value" class="block text-sm font-medium text-slate-700">Valor Total da Reserva (R$)</label><input type="number" step="0.01" id="res-total-value" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500"></div>
+                    <div><label for="res-guest-name" class="block text-sm font-medium text-slate-700">Nome do Hóspede</label><input type="text" id="res-guest-name" required class="input-style"></div>
+                    <div><label for="res-property" class="block text-sm font-medium text-slate-700">Propriedade</label><select id="res-property" required class="input-style"><option value="estancia_do_vale">Estância do Vale</option><option value="vale_do_sabia">Vale do Sabiá</option></select></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label for="res-start-date" class="block text-sm font-medium text-slate-700">Data de Entrada</label><input type="date" id="res-start-date" required class="input-style"></div>
+                        <div><label for="res-end-date" class="block text-sm font-medium text-slate-700">Data de Saída</label><input type="date" id="res-end-date" required class="input-style"></div>
+                    </div>
+                    <div><label for="res-total-value" class="block text-sm font-medium text-slate-700">Valor Total (R$)</label><input type="number" step="0.01" id="res-total-value" required class="input-style"></div>
                 </div>
                 <div class="flex justify-end gap-2 mt-8">
-                    <button type="button" class="close-modal-btn" data-modal-id="reservation-modal">Cancelar</button>
+                    <button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="reservation-modal">Cancelar</button>
                     <button type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar Reserva</button>
                 </div>
             </form>
@@ -213,21 +248,48 @@
                 <p class="mb-4">Registrando pagamento para a reserva de <strong id="payment-guest-name"></strong>.</p>
                 <div>
                     <label for="payment-amount" class="block text-sm font-medium text-slate-700">Valor do Pagamento (R$)</label>
-                    <input type="number" step="0.01" id="payment-amount" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                    <input type="number" step="0.01" id="payment-amount" required class="input-style">
                 </div>
                 <div class="flex justify-end gap-2 mt-8">
-                    <button type="button" class="close-modal-btn" data-modal-id="payment-modal">Cancelar</button>
+                    <button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="payment-modal">Cancelar</button>
                     <button type="submit" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Confirmar Pagamento</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <div id="transaction-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="transaction-modal-title" class="text-2xl font-bold">Nova Despesa</h2>
+                <button type="button" class="close-modal-btn text-2xl text-slate-500 hover:text-slate-800" data-modal-id="transaction-modal">&times;</button>
+            </div>
+            <form id="transaction-form">
+                <input type="hidden" id="transaction-id">
+                <input type="hidden" id="transaction-type">
+                <div class="space-y-4">
+                    <div><label for="tx-description" class="block text-sm font-medium text-slate-700">Descrição</label><input type="text" id="tx-description" required class="input-style"></div>
+                    <div><label for="tx-amount" class="block text-sm font-medium text-slate-700">Valor (R$)</label><input type="number" step="0.01" id="tx-amount" required class="input-style"></div>
+                    <div><label for="tx-date" class="block text-sm font-medium text-slate-700">Data</label><input type="date" id="tx-date" required class="input-style"></div>
+                    <div id="category-wrapper">
+                        <label for="tx-category" class="block text-sm font-medium text-slate-700">Categoria da Despesa</label>
+                        <select id="tx-category" required class="input-style">
+                            <option value="Condomínio">Condomínio</option><option value="Pessoal - Arthur">Pessoal - Arthur</option><option value="Pessoal - Lucas">Pessoal - Lucas</option><option value="Outras">Outras</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-8">
+                    <button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="transaction-modal">Cancelar</button>
+                    <button id="transaction-submit-button" type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
+    
     <script type="module" src="firebase-config.js"></script>
     <script type="module" src="ui.js"></script>
     <script type="module" src="app.js"></script>
