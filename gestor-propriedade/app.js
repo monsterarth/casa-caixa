@@ -1,17 +1,18 @@
 import { auth, db, provider, Timestamp } from './firebase-config.js';
 import { 
     updateAllUI, renderCalendar, openReservationModal, openPaymentModal, 
-    openTransactionModal, closeModal, showTab, populateSettingsForm, 
+    openTransactionModal, closeModal, showTab, populateReserveFund, 
     renderReservationsTable, renderTransactionsTable, openClientModal, 
-    openDeleteReservationModal, openForecastDetailsModal, updateShareSliders
+    openDeleteReservationModal, openForecastDetailsModal, updateShareControls
 } from './ui.js';
 
 // --- ESTADO GLOBAL DO APP ---
 let currentDate = new Date();
 let reservations = [];
 let transactions = [];
-let clients = []; // NOVO
+let clients = [];
 let settings = {};
+let isUpdatingShares = false; // NOVO: Trava para evitar loops nos sliders
 
 // --- LÓGICA DE CÁLCULO (sem alterações) ---
 function calculateFinancialSummary(allTransactions) {
@@ -70,55 +71,33 @@ function calculateKPIs(allReservations, targetDate) {
     return { occupancyRate, adr };
 }
 
-// --- HANDLERS DE DADOS (NOVOS E ALTERADOS) ---
 
-// NOVO: Salvar Cliente
+// --- HANDLERS DE DADOS ---
+
 async function handleSaveClient(event) {
     event.preventDefault();
     const form = event.target;
-    const clientData = {
-        name: form['client-name'].value.trim(),
-        phone: form['client-phone'].value.trim(),
-        notes: form['client-notes'].value.trim(),
-        createdAt: Timestamp.now()
-    };
+    const clientData = { name: form['client-name'].value.trim(), phone: form['client-phone'].value.trim(), notes: form['client-notes'].value.trim(), createdAt: Timestamp.now() };
     try {
         const docRef = await db.collection('clients').add(clientData);
         closeModal('client-modal');
-        // Seleciona o cliente recém-criado no formulário de reserva
         const clientSelect = document.getElementById('res-client-select');
         if (clientSelect) {
             const option = new Option(clientData.name, docRef.id, true, true);
             clientSelect.add(option);
             clientSelect.dispatchEvent(new Event('change'));
         }
-    } catch (error) {
-        console.error("Erro ao salvar cliente: ", error);
-        alert("Não foi possível salvar o cliente.");
-    }
+    } catch (error) { console.error("Erro ao salvar cliente: ", error); alert("Não foi possível salvar o cliente."); }
 }
 
-// ALTERADO: Salvar Reserva (agora com clientId)
 async function handleSaveReservation(event) {
     event.preventDefault();
     const form = event.target;
     const startDate = new Date(form['res-start-date'].value + 'T00:00:00');
     const endDate = new Date(form['res-end-date'].value + 'T00:00:00');
-    if (endDate <= startDate) {
-        alert("A data de saída deve ser posterior à data de entrada.");
-        return;
-    }
+    if (endDate <= startDate) { alert("A data de saída deve ser posterior à data de entrada."); return; }
     const reservationId = form['reservation-id'].value;
-    const reservationData = {
-        clientId: form['res-client-select'].value, // NOVO
-        propertyId: form['res-property'].value,
-        startDate: Timestamp.fromDate(startDate),
-        endDate: Timestamp.fromDate(endDate),
-        totalValue: parseFloat(form['res-total-value'].value),
-        status: form['res-status'].value,
-        sourcePlatform: form['res-source-platform'].value,
-        observation: form['res-observation'].value.trim() // NOVO
-    };
+    const reservationData = { clientId: form['res-client-select'].value, propertyId: form['res-property'].value, startDate: Timestamp.fromDate(startDate), endDate: Timestamp.fromDate(endDate), totalValue: parseFloat(form['res-total-value'].value), status: form['res-status'].value, sourcePlatform: form['res-source-platform'].value, observation: form['res-observation'].value.trim() };
     try {
         if (reservationId) {
             await db.collection('reservations').doc(reservationId).update(reservationData);
@@ -128,28 +107,16 @@ async function handleSaveReservation(event) {
             await db.collection('reservations').add(reservationData);
         }
         closeModal('reservation-modal');
-    } catch (error) {
-        console.error("Erro ao salvar reserva: ", error);
-    }
+    } catch (error) { console.error("Erro ao salvar reserva: ", error); }
 }
 
-// ALTERADO: Salvar Transação (agora edita também)
 async function handleSaveTransaction(event) {
     event.preventDefault();
     const form = event.target;
-    const transactionId = form['transaction-id'].value; // NOVO
+    const transactionId = form['transaction-id'].value;
     const type = form['transaction-type'].value;
-    const transactionData = {
-        description: form['tx-description'].value,
-        amount: parseFloat(form['tx-amount'].value),
-        date: Timestamp.fromDate(new Date(form['tx-date'].value + 'T00:00:00')),
-        type: type
-    };
-    if (type === 'expense') {
-        transactionData.category = form['tx-category'].value;
-    } else {
-        transactionData.category = 'Receita Avulsa';
-    }
+    const transactionData = { description: form['tx-description'].value, amount: parseFloat(form['tx-amount'].value), date: Timestamp.fromDate(new Date(form['tx-date'].value + 'T00:00:00')), type: type };
+    if (type === 'expense') { transactionData.category = form['tx-category'].value; } else { transactionData.category = 'Receita Avulsa'; }
     try {
         if (transactionId) {
             await db.collection('financial_transactions').doc(transactionId).update(transactionData);
@@ -157,125 +124,100 @@ async function handleSaveTransaction(event) {
             await db.collection('financial_transactions').add(transactionData);
         }
         closeModal('transaction-modal');
-    } catch (error) {
-        console.error("Erro ao salvar transação: ", error);
-    }
+    } catch (error) { console.error("Erro ao salvar transação: ", error); }
 }
 
-// NOVO: Handler para deletar reserva com opções
 async function handleDeleteReservation(event) {
     event.preventDefault();
     const form = event.target;
     const reservationId = form['delete-res-id'].value;
     const action = form['delete-action'].value;
     const reservation = reservations.find(r => r.id === reservationId);
-    if (!reservation) {
-        alert("Reserva não encontrada!");
-        return;
-    }
-
+    if (!reservation) { alert("Reserva não encontrada!"); return; }
     try {
         if (action === 'refund' && (reservation.amountPaid || 0) > 0) {
             const client = clients.find(c => c.id === reservation.clientId);
-            const refundTransaction = {
-                description: `Estorno Reserva - ${client?.name || 'Cliente Desconhecido'}`,
-                amount: reservation.amountPaid,
-                date: Timestamp.now(),
-                type: 'expense',
-                category: 'Estorno'
-            };
+            const refundTransaction = { description: `Estorno Reserva - ${client?.name || 'Cliente Desconhecido'}`, amount: reservation.amountPaid, date: Timestamp.now(), type: 'expense', category: 'Estorno' };
             await db.collection('financial_transactions').add(refundTransaction);
         }
         await db.collection('reservations').doc(reservationId).delete();
         closeModal('delete-reservation-modal');
         alert('Reserva excluída com sucesso.');
-    } catch (error) {
-        console.error("Erro ao excluir reserva: ", error);
-        alert("Não foi possível excluir a reserva.");
-    }
+    } catch (error) { console.error("Erro ao excluir reserva: ", error); alert("Não foi possível excluir a reserva."); }
 }
 
 async function handleDeleteTransaction(id) {
     if (confirm('Tem certeza que deseja excluir este lançamento?')) {
-        try {
-            await db.collection('financial_transactions').doc(id).delete();
-        } catch (error) {
-            console.error("Erro ao excluir transação: ", error);
-        }
+        try { await db.collection('financial_transactions').doc(id).delete(); } catch (error) { console.error("Erro ao excluir transação: ", error); }
     }
 }
 
-// ALTERADO: Salvar configurações (agora pega dos sliders)
 async function handleSaveSettings(event) {
     event.preventDefault();
-    const form = event.target;
     const newSettings = {
         shareArthur: parseFloat(document.getElementById('setting-share-arthur-input').value),
         shareLucas: parseFloat(document.getElementById('setting-share-lucas-input').value),
         shareFundoCaixa: parseFloat(document.getElementById('setting-share-caixa-input').value),
-        fundoReservaFixo: parseFloat(form['setting-reserve-fund'].value)
+        fundoReservaFixo: parseFloat(document.getElementById('setting-reserve-fund').value)
     };
-
     const totalShare = newSettings.shareArthur + newSettings.shareLucas + newSettings.shareFundoCaixa;
-    if (Math.abs(totalShare - 100) > 0.1) {
-        alert(`A soma das porcentagens deve ser 100%, mas é ${totalShare.toFixed(2)}%. Verifique os valores.`);
-        return;
-    }
+    if (Math.abs(totalShare - 100) > 0.1) { alert(`A soma das porcentagens deve ser 100%, mas é ${totalShare.toFixed(2)}%. Verifique os valores.`); return; }
     try {
-        await db.collection('settings').doc('main').set(newSettings, { merge: true }); // Usar merge para não sobrescrever outros campos
+        await db.collection('settings').doc('main').set(newSettings, { merge: true });
         alert('Configurações salvas com sucesso!');
-    } catch (error) {
-        console.error("Erro ao salvar configurações: ", error);
-    }
+    } catch (error) { console.error("Erro ao salvar configurações: ", error); }
 }
 
-// NOVO: Handler para os sliders de share
-function handleShareChange(source) {
-    const shares = {
+// ALTERADO: Lógica dos Sliders completamente refeita para estabilidade e para seguir as regras.
+function handleShareChange(source, newValue) {
+    if (isUpdatingShares) return; // Trava para evitar loop
+    isUpdatingShares = true;
+
+    const newShares = {
         arthur: parseFloat(document.getElementById('setting-share-arthur-input').value),
         lucas: parseFloat(document.getElementById('setting-share-lucas-input').value),
         caixa: parseFloat(document.getElementById('setting-share-caixa-input').value)
     };
-    
-    // Recalcula o total para garantir que não haja erros de ponto flutuante
-    let total = shares.arthur + shares.lucas + shares.caixa;
-    let diff = 100 - total;
 
-    if (source === 'arthur') {
-        let caixaShare = shares.caixa + diff;
-        if (caixaShare < 0) {
-            shares.lucas += caixaShare;
-            shares.caixa = 0;
-        } else {
-            shares.caixa = caixaShare;
-        }
-    } else if (source === 'lucas') {
-        let caixaShare = shares.caixa + diff;
-        if (caixaShare < 0) {
-            shares.arthur += caixaShare;
-            shares.caixa = 0;
-        } else {
-            shares.caixa = caixaShare;
+    const oldVal = newShares[source];
+    const newVal = parseFloat(newValue);
+    const delta = newVal - oldVal;
+
+    newShares[source] = newVal; // Aplica a mudança inicial
+
+    if (source === 'arthur' || source === 'lucas') {
+        if (delta > 0) { // Aumentando sócio
+            if (newShares.caixa >= delta) {
+                newShares.caixa -= delta;
+            } else {
+                newShares[source] = oldVal; // Bloqueia a mudança se o caixa não tiver saldo
+            }
+        } else { // Diminuindo sócio
+            newShares.caixa -= delta; // Delta é negativo, então subtrair aumenta o caixa
         }
     } else if (source === 'caixa') {
-        shares.arthur += diff / 2;
-        shares.lucas += diff / 2;
+        if (delta < 0) { // Diminuindo caixa
+            newShares.arthur -= delta / 2;
+            newShares.lucas -= delta / 2;
+        } else { // Aumentando caixa
+            if (newShares.arthur >= delta / 2 && newShares.lucas >= delta / 2) {
+                newShares.arthur -= delta / 2;
+                newShares.lucas -= delta / 2;
+            } else {
+                newShares[source] = oldVal; // Bloqueia a mudança
+            }
+        }
     }
-
-    // Garante que nenhum valor seja negativo
-    shares.arthur = Math.max(0, shares.arthur);
-    shares.lucas = Math.max(0, shares.lucas);
-    shares.caixa = Math.max(0, shares.caixa);
     
-    // Normaliza para garantir 100% exato
-    total = shares.arthur + shares.lucas + shares.caixa;
-    if (total > 0) {
-        shares.arthur = (shares.arthur / total) * 100;
-        shares.lucas = (shares.lucas / total) * 100;
-        shares.caixa = (shares.caixa / total) * 100;
+    // Normaliza para garantir 100%
+    const total = newShares.arthur + newShares.lucas + newShares.caixa;
+    if (total !== 100) {
+        const excess = total - 100;
+        newShares.caixa -= excess; // Ajusta o caixa para forçar 100%
     }
-
-    updateShareSliders(shares);
+    
+    updateShareControls({ shareArthur: newShares.arthur, shareLucas: newShares.lucas, shareFundoCaixa: newShares.caixa });
+    isUpdatingShares = false;
 }
 
 async function handleConfirmPayout(reservationId) { // Sem alterações
@@ -285,7 +227,8 @@ async function handleConfirmPayout(reservationId) { // Sem alterações
     if (!reservationData || reservationData.isPayoutConfirmed) { alert('Este payout já foi confirmado ou a reserva não foi encontrada.'); return; }
     try {
         await db.runTransaction(async (t) => {
-            const txData = { description: `Payout Airbnb - ${clients.find(c=>c.id === reservationData.clientId)?.name || ''}`, amount: reservationData.totalValue, date: Timestamp.now(), type: 'revenue', category: 'Receita de Aluguel', reservationId };
+            const clientName = clients.find(c=>c.id === reservationData.clientId)?.name || '';
+            const txData = { description: `Payout Airbnb - ${clientName}`, amount: reservationData.totalValue, date: Timestamp.now(), type: 'revenue', category: 'Receita de Aluguel', reservationId };
             const txRef = db.collection('financial_transactions').doc();
             t.set(txRef, txData);
             t.update(reservationRef, { amountPaid: reservationData.totalValue, isPayoutConfirmed: true });
@@ -306,8 +249,9 @@ async function handleRegisterPayment(event) { // Sem alterações
             const resDoc = await t.get(reservationRef);
             if (!resDoc.exists) throw "Reserva não encontrada!";
             const resData = resDoc.data();
+            const clientName = clients.find(c=>c.id === resData.clientId)?.name || '';
             const newAmountPaid = (resData.amountPaid || 0) + paymentAmount;
-            const txData = { description: `Pagamento Reserva - ${clients.find(c=>c.id === resData.clientId)?.name || ''}`, amount: paymentAmount, date: Timestamp.now(), type: 'revenue', category: 'Receita de Aluguel', reservationId };
+            const txData = { description: `Pagamento Reserva - ${clientName}`, amount: paymentAmount, date: Timestamp.now(), type: 'revenue', category: 'Receita de Aluguel', reservationId };
             const txRef = db.collection('financial_transactions').doc();
             t.set(txRef, txData);
             t.update(reservationRef, { amountPaid: newAmountPaid });
@@ -315,7 +259,6 @@ async function handleRegisterPayment(event) { // Sem alterações
         closeModal('payment-modal');
     } catch (error) { console.error("Erro ao registrar pagamento: ", error); }
 }
-
 
 // --- LÓGICA PRINCIPAL E EVENT LISTENERS ---
 function initializeApp() {
@@ -328,41 +271,36 @@ function setupEventListeners() {
     document.getElementById('logout-button').addEventListener('click', () => auth.signOut());
     document.getElementById('login-button')?.addEventListener('click', () => auth.signInWithPopup(provider));
     
-    // Navegação
     document.getElementById('prev-month-btn').addEventListener('click', () => navigateMonth(-1));
     document.getElementById('next-month-btn').addEventListener('click', () => navigateMonth(1));
     document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => showTab(b.getAttribute('data-tab'))));
     document.querySelectorAll('.close-modal-btn').forEach(b => b.addEventListener('click', () => closeModal(b.getAttribute('data-modal-id'))));
 
-    // Ações de abertura de modais
     document.getElementById('calendar-add-reservation-btn').addEventListener('click', () => openReservationModal(null, clients));
     document.getElementById('reservations-add-reservation-btn').addEventListener('click', () => openReservationModal(null, clients));
     document.getElementById('add-revenue-btn').addEventListener('click', () => openTransactionModal('revenue'));
     document.getElementById('add-expense-btn').addEventListener('click', () => openTransactionModal('expense'));
-    document.getElementById('add-new-client-btn').addEventListener('click', openClientModal); // NOVO
-    document.getElementById('forecast-card').addEventListener('click', () => { // NOVO
-        const upcomingPayments = reservations.filter(r => (r.totalValue - (r.amountPaid || 0)) > 0 && r.status !== 'Cancelada').sort((a, b) => a.startDate.toDate() - b.startDate.toDate()).slice(0, 5);
+    document.getElementById('add-new-client-btn').addEventListener('click', openClientModal);
+    document.getElementById('forecast-card').addEventListener('click', () => {
+        const upcomingPayments = reservations.filter(r => (r.totalValue - (r.amountPaid || 0)) > 0.01 && r.status !== 'Cancelada').sort((a, b) => a.startDate.toDate() - b.startDate.toDate()).slice(0, 5);
         openForecastDetailsModal(upcomingPayments, clients);
     });
 
-    // Submissão de formulários
     document.getElementById('reservation-form').addEventListener('submit', handleSaveReservation);
     document.getElementById('payment-form').addEventListener('submit', handleRegisterPayment);
     document.getElementById('transaction-form').addEventListener('submit', handleSaveTransaction);
     document.getElementById('settings-form').addEventListener('submit', handleSaveSettings);
-    document.getElementById('client-form').addEventListener('submit', handleSaveClient); // NOVO
-    document.getElementById('delete-reservation-form').addEventListener('submit', handleDeleteReservation); // NOVO
+    document.getElementById('client-form').addEventListener('submit', handleSaveClient);
+    document.getElementById('delete-reservation-form').addEventListener('submit', handleDeleteReservation);
     
-    // Sliders de Configurações
-    document.getElementById('setting-share-arthur-slider').addEventListener('input', () => handleShareChange('arthur'));
-    document.getElementById('setting-share-lucas-slider').addEventListener('input', () => handleShareChange('lucas'));
-    document.getElementById('setting-share-caixa-slider').addEventListener('input', () => handleShareChange('caixa'));
-    document.getElementById('setting-share-arthur-input').addEventListener('change', () => handleShareChange('arthur'));
-    document.getElementById('setting-share-lucas-input').addEventListener('change', () => handleShareChange('lucas'));
-    document.getElementById('setting-share-caixa-input').addEventListener('change', () => handleShareChange('caixa'));
+    // ALTERADO: Listeners para sliders e inputs
+    document.getElementById('setting-share-arthur-slider').addEventListener('input', (e) => handleShareChange('arthur', e.target.value));
+    document.getElementById('setting-share-lucas-slider').addEventListener('input', (e) => handleShareChange('lucas', e.target.value));
+    document.getElementById('setting-share-caixa-slider').addEventListener('input', (e) => handleShareChange('caixa', e.target.value));
+    document.getElementById('setting-share-arthur-input').addEventListener('change', (e) => handleShareChange('arthur', e.target.value));
+    document.getElementById('setting-share-lucas-input').addEventListener('change', (e) => handleShareChange('lucas', e.target.value));
+    document.getElementById('setting-share-caixa-input').addEventListener('change', (e) => handleShareChange('caixa', e.target.value));
 
-
-    // Event Delegation para botões nas tabelas
     document.getElementById('transactions-table-body').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-transaction-btn');
         const editBtn = e.target.closest('.edit-transaction-btn');
@@ -376,7 +314,6 @@ function setupEventListeners() {
         if (deleteBtn) window.deleteReservation(deleteBtn.dataset.id);
     });
     
-    // Filtros
     document.getElementById('res-filter-search').addEventListener('input', applyFiltersAndRender);
     document.getElementById('res-filter-status').addEventListener('change', applyFiltersAndRender);
     document.getElementById('tx-filter-search').addEventListener('input', applyFiltersAndRender);
@@ -398,8 +335,8 @@ function listenForData() {
     db.collection('settings').doc('main').onSnapshot(doc => {
         if (doc.exists) {
             settings = doc.data();
-            populateSettingsForm(settings); // Popula o fundo de reserva fixo
-            updateShareSliders(settings); // Popula os sliders
+            populateReserveFund(settings);
+            updateShareControls(settings);
             runCalculationsAndUpdateUI();
         }
     });
@@ -423,7 +360,6 @@ function applyFiltersAndRender() {
         const matchesStatus = resStatusFilter ? res.status === resStatusFilter : true;
         return matchesSearch && matchesStatus;
     });
-
     const txSearchTerm = document.getElementById('tx-filter-search').value.toLowerCase();
     const txDateStart = document.getElementById('tx-filter-date-start').value;
     const txDateEnd = document.getElementById('tx-filter-date-end').value;
@@ -434,12 +370,10 @@ function applyFiltersAndRender() {
         const matchesDateEnd = txDateEnd ? txDate <= new Date(txDateEnd + 'T23:59:59') : true;
         return matchesSearch && matchesDateStart && matchesDateEnd;
     });
-    
     renderReservationsTable(filteredReservations, clients);
     renderTransactionsTable(filteredTransactions);
     runCalculationsAndUpdateUI();
 }
-
 
 function runCalculationsAndUpdateUI() {
     if (!settings || !transactions || !reservations || !clients) return;
@@ -448,15 +382,8 @@ function runCalculationsAndUpdateUI() {
     const settlement = calculateSettlement(summary, settings);
     const fundoCaixa = settlement.fundoCaixaTeorico;
     const kpis = calculateKPIs(reservations, currentDate);
-    
-    // Dados para os paineis do dashboard
     const upcomingGuests = reservations.filter(r => r.status === 'Confirmada' && r.startDate.toDate() > new Date()).sort((a,b) => a.startDate.toDate() - b.startDate.toDate()).slice(0,3);
-
-    updateAllUI({ 
-        summary, forecast, settlement, fundoCaixa, kpis, 
-        transactions, // para o extrato
-        upcomingGuests, clients
-    });
+    updateAllUI({ summary, forecast, settlement, fundoCaixa, kpis, transactions, reservations, upcomingGuests, clients });
 }
 
 auth.onAuthStateChanged(user => {
@@ -474,7 +401,6 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// --- EXPOSIÇÃO DE FUNÇÕES GLOBAIS ---
 window.editReservation = (resId) => {
     const reservation = reservations.find(r => r.id === resId);
     if(reservation) openReservationModal(reservation, clients);

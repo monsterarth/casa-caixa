@@ -1,29 +1,45 @@
-// --- ESTADO DOS GRÁFICOS (sem alterações) ---
+// --- ESTADO DOS GRÁFICOS ---
 let financialEvolutionChart = null;
 let sourceBreakdownChart = null;
 
 // --- FUNÇÕES DE RENDERIZAÇÃO PRINCIPAIS ---
 
-// ALTERADO: Função principal de renderização da UI
 export function updateAllUI(data) {
-    updateDashboardUI(data.summary, data.forecast, data.fundoCaixa, data.kpis, data.upcomingGuests, data.clients);
-    updateFinancialEvolutionChart(data.transactions); // Gráfico usa transações completas
-    updateSourceBreakdownChart(data.reservations); // Gráfico usa reservas completas
-    renderSettlementTab(data.settlement, data.transactions); // Passa transações para o extrato
+    updateDashboardUI(data.upcomingGuests, data.clients);
+    updateFinancialCards(data.summary, data.forecast, data.fundoCaixa, data.kpis);
+    updateFinancialEvolutionChart(data.transactions);
+    updateSourceBreakdownChart(data.reservations);
+    renderSettlementTab(data.settlement, data.transactions);
 }
 
-// ALTERADO: Renderiza todo o dashboard
-export function updateDashboardUI(summary, forecast, fundoCaixa, kpis, upcomingGuests, allClients) {
+function updateFinancialCards(summary, forecast, fundoCaixa, kpis) {
     const el = id => document.getElementById(id);
     el('fundoCaixa').textContent = formatCurrency(fundoCaixa);
     el('cashBalance').textContent = formatCurrency(summary.cashBalance);
     el('forecast').textContent = formatCurrency(forecast);
     el('occupancyRate').textContent = `${(kpis.occupancyRate || 0).toFixed(1)}%`;
     el('averageDailyRate').textContent = formatCurrency(kpis.adr);
-    renderUpcomingGuests(upcomingGuests, allClients); // NOVO
 }
 
-// ALTERADO: Renderiza a aba de Acerto, incluindo o extrato
+function updateDashboardUI(upcomingGuests, allClients) {
+    const listEl = document.getElementById('upcoming-guests-list');
+    if (!listEl) return;
+    if (upcomingGuests.length === 0) {
+        listEl.innerHTML = '<p class="text-slate-500">Nenhuma reserva confirmada para os próximos dias.</p>';
+        return;
+    }
+    listEl.innerHTML = upcomingGuests.map(res => {
+        const client = allClients.find(c => c.id === res.clientId);
+        if (!client) return '';
+        const checkinDate = res.startDate.toDate().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+        return `<div class="border-b pb-2 last:border-b-0">
+                    <p class="font-bold text-slate-800">${client.name}</p>
+                    <p class="text-sm text-slate-600">Check-in: ${checkinDate}</p>
+                    ${client.phone ? `<p class="text-sm text-sky-600"><i class="fas fa-phone mr-2"></i>${client.phone}</p>` : ''}
+                </div>`;
+    }).join('');
+}
+
 export function renderSettlementTab(settlement, allTransactions) {
     const el = id => document.getElementById(id);
     el('arthur-share').textContent = formatCurrency(settlement.cotaArthur);
@@ -32,75 +48,36 @@ export function renderSettlementTab(settlement, allTransactions) {
     el('lucas-share').textContent = formatCurrency(settlement.cotaLucas);
     el('lucas-expenses').textContent = formatCurrency(settlement.despesasLucas);
     el('lucas-balance').textContent = formatCurrency(settlement.saldoFinalLucas);
-    renderSettlementStatements(allTransactions); // NOVO
-}
-
-// ALTERADO: Popula apenas o fundo de reserva. Sliders são controlados separadamente.
-export function populateSettingsForm(settings) {
-    if (!settings) return;
-    document.getElementById('setting-reserve-fund').value = settings.fundoReservaFixo || 0;
-}
-
-// --- RENDERIZAÇÃO DE COMPONENTES ESPECÍFICOS ---
-
-// NOVO: Renderiza o painel de próximos hóspedes
-function renderUpcomingGuests(guests, allClients) {
-    const listEl = document.getElementById('upcoming-guests-list');
-    if (!listEl) return;
-    if (guests.length === 0) {
-        listEl.innerHTML = '<p class="text-slate-500">Nenhuma reserva confirmada para os próximos dias.</p>';
-        return;
-    }
-    listEl.innerHTML = guests.map(res => {
-        const client = allClients.find(c => c.id === res.clientId);
-        if (!client) return '';
-        const checkinDate = res.startDate.toDate().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
-        return `
-            <div class="border-b pb-2">
-                <p class="font-bold text-slate-800">${client.name}</p>
-                <p class="text-sm text-slate-600">Check-in: ${checkinDate}</p>
-                ${client.phone ? `<p class="text-sm text-sky-600"><i class="fas fa-phone mr-2"></i>${client.phone}</p>` : ''}
-            </div>
-        `;
-    }).join('');
-}
-
-// NOVO: Renderiza os extratos na aba Acerto de Contas
-function renderSettlementStatements(allTransactions) {
+    
     const renderStatement = (owner, elementId) => {
         const statementEl = document.getElementById(elementId);
         if (!statementEl) return;
         const personalExpenses = allTransactions.filter(tx => tx.category === `Pessoal - ${owner}`);
-        if (personalExpenses.length === 0) {
-            statementEl.innerHTML = '<p class="text-slate-400">Nenhuma despesa pessoal lançada.</p>';
-            return;
-        }
+        if (personalExpenses.length === 0) { statementEl.innerHTML = '<p class="text-slate-400">Nenhuma despesa pessoal lançada.</p>'; return; }
         statementEl.innerHTML = personalExpenses.map(tx => `
             <div class="flex justify-between items-center hover:bg-slate-50 p-1 rounded">
-                <div>
-                    <p class="font-medium text-slate-700">${tx.description}</p>
-                    <p class="text-xs text-slate-500">${tx.date.toDate().toLocaleDateString('pt-BR')}</p>
-                </div>
+                <div><p class="font-medium text-slate-700">${tx.description}</p><p class="text-xs text-slate-500">${tx.date.toDate().toLocaleDateString('pt-BR')}</p></div>
                 <p class="font-bold text-red-500">${formatCurrency(tx.amount)}</p>
-            </div>
-        `).join('');
+            </div>`).join('');
     };
     renderStatement('Arthur', 'arthur-statement');
     renderStatement('Lucas', 'lucas-statement');
 }
 
+// ALTERADO: Função renomeada para clareza
+export function populateReserveFund(settings) {
+    if (!settings) return;
+    document.getElementById('setting-reserve-fund').value = settings.fundoReservaFixo || 0;
+}
 
 // --- RENDERIZAÇÃO DE TABELAS ---
-
-// ALTERADO: Adiciona botões de editar/deletar
 export function renderTransactionsTable(transactionsToRender) {
     const tableBody = document.getElementById('transactions-table-body');
     if (!tableBody) return;
     tableBody.innerHTML = transactionsToRender.map(tx => {
         const isRevenue = tx.type === 'revenue';
         const date = tx.date.toDate().toLocaleDateString('pt-BR');
-        return `
-            <tr class="hover:bg-slate-50">
+        return `<tr class="hover:bg-slate-50">
                 <td class="p-3">${tx.description}</td>
                 <td class="p-3 font-medium ${isRevenue ? 'text-green-600' : 'text-red-600'}">${isRevenue ? '+' : '-'} ${formatCurrency(tx.amount)}</td>
                 <td class="p-3 text-slate-600">${tx.category || 'N/A'}</td>
@@ -109,12 +86,10 @@ export function renderTransactionsTable(transactionsToRender) {
                     <button class="text-sky-500 hover:text-sky-700 edit-transaction-btn" data-id="${tx.id}"><i class="fas fa-edit"></i></button>
                     <button class="text-red-500 hover:text-red-700 delete-transaction-btn" data-id="${tx.id}"><i class="fas fa-trash"></i></button>
                 </td>
-            </tr>
-        `;
+            </tr>`;
     }).join('');
 }
 
-// ALTERADO: Usa nome do cliente e adiciona botão de deletar
 export function renderReservationsTable(reservationsToRender, allClients) {
     const tableBody = document.getElementById('reservations-table-body');
     if(!tableBody) return;
@@ -124,8 +99,7 @@ export function renderReservationsTable(reservationsToRender, allClients) {
         const client = allClients.find(c => c.id === res.clientId);
         const statusColors = { 'Confirmada': 'bg-green-100 text-green-800', 'Pré-reserva': 'bg-yellow-100 text-yellow-800', 'Cancelada': 'bg-red-100 text-red-800', 'Finalizada': 'bg-blue-100 text-blue-800', 'Em andamento': 'bg-indigo-100 text-indigo-800' };
         const statusColor = statusColors[res.status] || 'bg-slate-100 text-slate-800';
-        return `
-            <tr class="hover:bg-slate-50">
+        return `<tr class="hover:bg-slate-50">
                 <td class="p-3 font-medium">${client?.name || 'Cliente não encontrado'}</td>
                 <td class="p-3">${start} - ${end}</td>
                 <td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">${res.status}</span></td>
@@ -134,8 +108,7 @@ export function renderReservationsTable(reservationsToRender, allClients) {
                     <button class="text-sky-500 hover:text-sky-700 edit-reservation-btn" data-id="${res.id}"><i class="fas fa-edit"></i></button>
                     <button class="text-red-500 hover:text-red-700 delete-reservation-btn" data-id="${res.id}"><i class="fas fa-trash"></i></button>
                 </td>
-            </tr>
-        `;
+            </tr>`;
     }).join('');
 }
 
@@ -144,27 +117,16 @@ export function updateFinancialEvolutionChart(allTransactions) {
     const ctx = document.getElementById('financialEvolutionChart')?.getContext('2d');
     if (!ctx) return;
     const monthlyData = {};
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
-    for(let i=0; i<6; i++) {
-        const date = new Date(sixMonthsAgo); date.setMonth(date.getMonth() + i);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        monthlyData[key] = { revenue: 0, expense: 0, label: date.toLocaleString('pt-BR', { month: 'short' }) };
-    }
+    const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5); sixMonthsAgo.setDate(1);
+    for(let i=0; i<6; i++) { const date = new Date(sixMonthsAgo); date.setMonth(date.getMonth() + i); const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; monthlyData[key] = { revenue: 0, expense: 0, label: date.toLocaleString('pt-BR', { month: 'short' }) }; }
     allTransactions.forEach(tx => {
         const txDate = tx.date.toDate();
         if (txDate >= sixMonthsAgo) {
             const key = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
-            if(monthlyData[key]) {
-                if(tx.type === 'revenue') monthlyData[key].revenue += tx.amount; else monthlyData[key].expense += tx.amount;
-            }
+            if(monthlyData[key]) { if(tx.type === 'revenue') monthlyData[key].revenue += tx.amount; else monthlyData[key].expense += tx.amount; }
         }
     });
-    const chartData = {
-        labels: Object.values(monthlyData).map(d => d.label),
-        datasets: [{ label: 'Receitas', data: Object.values(monthlyData).map(d => d.revenue), backgroundColor: 'rgba(34, 197, 94, 0.2)', borderColor: 'rgba(34, 197, 94, 1)', borderWidth: 2, tension: 0.3 }, { label: 'Despesas', data: Object.values(monthlyData).map(d => d.expense), backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 1)', borderWidth: 2, tension: 0.3 }]
-    };
+    const chartData = { labels: Object.values(monthlyData).map(d => d.label), datasets: [{ label: 'Receitas', data: Object.values(monthlyData).map(d => d.revenue), backgroundColor: 'rgba(34, 197, 94, 0.2)', borderColor: 'rgba(34, 197, 94, 1)', borderWidth: 2, tension: 0.3 }, { label: 'Despesas', data: Object.values(monthlyData).map(d => d.expense), backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 1)', borderWidth: 2, tension: 0.3 }]};
     if (financialEvolutionChart) { financialEvolutionChart.data = chartData; financialEvolutionChart.update(); } 
     else { financialEvolutionChart = new Chart(ctx, { type: 'line', data: chartData, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } } }); }
 }
@@ -172,27 +134,19 @@ export function updateSourceBreakdownChart(allReservations) {
     const ctx = document.getElementById('sourceBreakdownChart')?.getContext('2d');
     if (!ctx) return;
     const breakdown = {};
-    allReservations.filter(r => r.status !== 'Cancelada').forEach(res => {
-       const source = res.sourcePlatform || 'Outro';
-       if(!breakdown[source]) breakdown[source] = 0;
-       breakdown[source] += res.totalValue;
-    });
-    const chartData = {
-        labels: Object.keys(breakdown),
-        datasets: [{ data: Object.values(breakdown), backgroundColor: ['#38bdf8', '#818cf8', '#f472b6', '#fbbf24', '#4ade80'], borderColor: '#f0f4f8', borderWidth: 4 }]
-    };
+    allReservations.filter(r => r.status !== 'Cancelada').forEach(res => { const source = res.sourcePlatform || 'Outro'; if(!breakdown[source]) breakdown[source] = 0; breakdown[source] += res.totalValue; });
+    const chartData = { labels: Object.keys(breakdown), datasets: [{ data: Object.values(breakdown), backgroundColor: ['#38bdf8', '#818cf8', '#f472b6', '#fbbf24', '#4ade80'], borderColor: '#f0f4f8', borderWidth: 4 }]};
     if (sourceBreakdownChart) { sourceBreakdownChart.data = chartData; sourceBreakdownChart.update(); } 
     else { sourceBreakdownChart = new Chart(ctx, { type: 'doughnut', data: chartData, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '70%' } }); }
 }
 
-// --- MODAIS ---
 
-// ALTERADO: Lida com o dropdown de clientes
+// --- MODAIS ---
 export function openReservationModal(reservation, allClients) {
     const modal = document.getElementById('reservation-modal');
     const form = document.getElementById('reservation-form');
     form.reset();
-    populateClientsDropdown(allClients, reservation?.clientId); // NOVO
+    populateClientsDropdown(allClients, reservation?.clientId);
     if (reservation) {
         form['reservation-id'].value = reservation.id;
         document.getElementById('reservation-modal-title').textContent = "Editar Reserva";
@@ -212,40 +166,29 @@ export function openReservationModal(reservation, allClients) {
     }
     modal.classList.remove('hidden');
 }
-
-// ALTERADO: Aceita transaction para edição
 export function openTransactionModal(type, transaction = null) {
     const modal = document.getElementById('transaction-modal');
     const form = document.getElementById('transaction-form');
     form.reset();
     document.getElementById('transaction-type').value = type;
-
-    if (transaction) { // Modo Edição
+    if (transaction) {
         document.getElementById('transaction-modal-title').textContent = `Editar ${type === 'revenue' ? 'Receita' : 'Despesa'}`;
         form['transaction-id'].value = transaction.id;
         form['tx-description'].value = transaction.description;
         form['tx-amount'].value = transaction.amount;
         form['tx-date'].value = transaction.date.toDate().toISOString().split('T')[0];
-        if (type === 'expense') {
-            form['tx-category'].value = transaction.category;
-        }
-    } else { // Modo Criação
+        if (type === 'expense') form['tx-category'].value = transaction.category;
+    } else {
         document.getElementById('transaction-modal-title').textContent = `Nova ${type === 'revenue' ? 'Receita' : 'Despesa'}`;
         form['transaction-id'].value = '';
     }
-
     document.getElementById('category-wrapper').classList.toggle('hidden', type === 'revenue');
     modal.classList.remove('hidden');
 }
-
-// NOVO: Abre modal para cadastrar cliente
 export function openClientModal() {
-    const form = document.getElementById('client-form');
-    form.reset();
+    document.getElementById('client-form').reset();
     document.getElementById('client-modal').classList.remove('hidden');
 }
-
-// NOVO: Abre modal para deletar reserva
 export function openDeleteReservationModal(reservation, client) {
     const modal = document.getElementById('delete-reservation-modal');
     const form = document.getElementById('delete-reservation-form');
@@ -255,13 +198,11 @@ export function openDeleteReservationModal(reservation, client) {
     document.getElementById('delete-res-paid-amount').textContent = formatCurrency(reservation.amountPaid || 0);
     modal.classList.remove('hidden');
 }
-
-// NOVO: Abre modal com detalhes da previsão
 export function openForecastDetailsModal(upcomingPayments, allClients) {
     const modal = document.getElementById('forecast-details-modal');
     const body = document.getElementById('forecast-details-body');
     if (upcomingPayments.length === 0) {
-        body.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-500">Nenhum pagamento pendente nas próximas reservas.</td></tr>';
+        body.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-500">Nenhum pagamento pendente.</td></tr>';
     } else {
         body.innerHTML = upcomingPayments.map(res => {
             const client = allClients.find(c => c.id === res.clientId);
@@ -275,8 +216,7 @@ export function openForecastDetailsModal(upcomingPayments, allClients) {
     }
     modal.classList.remove('hidden');
 }
-
-export function openPaymentModal(reservation, client) { // ALTERADO para receber cliente
+export function openPaymentModal(reservation, client) {
     const modal = document.getElementById('payment-modal');
     const form = document.getElementById('payment-form');
     form.reset();
@@ -287,8 +227,7 @@ export function openPaymentModal(reservation, client) { // ALTERADO para receber
     closeModal('reservation-modal');
     modal.classList.remove('hidden');
 }
-
-export function renderCalendar(currentDate, reservations, allClients) { // ALTERADO para receber clientes
+export function renderCalendar(currentDate, reservations, allClients) {
     const grid = document.getElementById('calendar-grid');
     const display = document.getElementById('current-month-year');
     if (!grid || !display) return;
@@ -306,12 +245,7 @@ export function renderCalendar(currentDate, reservations, allClients) { // ALTER
         dayCell.innerHTML = `<span class="font-medium self-start">${day}</span><div class="events-container flex-grow space-y-1 mt-1 overflow-hidden"></div>`;
         dayCell.addEventListener('click', (e) => { if (!e.target.closest('.event-chip')) window.openReservationModal(null, allClients); });
         const eventsContainer = dayCell.querySelector('.events-container');
-        const dayReservations = reservations.filter(res => {
-            if (!res.startDate || !res.endDate || res.status === 'Cancelada') return false;
-            const start = res.startDate.toDate(); start.setHours(0, 0, 0, 0);
-            const end = res.endDate.toDate(); end.setHours(0, 0, 0, 0);
-            return today >= start && today < end;
-        });
+        const dayReservations = reservations.filter(res => { if (!res.startDate || !res.endDate || res.status === 'Cancelada') return false; const start = res.startDate.toDate(); start.setHours(0, 0, 0, 0); const end = res.endDate.toDate(); end.setHours(0, 0, 0, 0); return today >= start && today < end; });
         const statusColors = { 'Confirmada': 'bg-green-500', 'Pré-reserva': 'bg-yellow-500', 'Em andamento': 'bg-indigo-500', 'Finalizada': 'bg-blue-500' };
         dayReservations.forEach(res => {
             const client = allClients.find(c => c.id === res.clientId);
@@ -328,7 +262,6 @@ export function renderCalendar(currentDate, reservations, allClients) { // ALTER
 }
 
 // --- FUNÇÕES UTILITÁRIAS ---
-
 function populateClientsDropdown(allClients, selectedClientId) {
     const select = document.getElementById('res-client-select');
     if (!select) return;
@@ -337,28 +270,25 @@ function populateClientsDropdown(allClients, selectedClientId) {
         const option = document.createElement('option');
         option.value = client.id;
         option.textContent = client.name;
-        if (client.id === selectedClientId) {
-            option.selected = true;
-        }
+        if (client.id === selectedClientId) option.selected = true;
         select.appendChild(option);
     });
 }
 
-// NOVO: Atualiza os sliders e os inputs numéricos
-export function updateShareSliders(shares) {
-    const arthurSlider = document.getElementById('setting-share-arthur-slider');
-    const lucasSlider = document.getElementById('setting-share-lucas-slider');
-    const caixaSlider = document.getElementById('setting-share-caixa-slider');
-    const arthurInput = document.getElementById('setting-share-arthur-input');
-    const lucasInput = document.getElementById('setting-share-lucas-input');
-    const caixaInput = document.getElementById('setting-share-caixa-input');
-
-    arthurSlider.value = shares.shareArthur;
-    arthurInput.value = (shares.shareArthur || 0).toFixed(2);
-    lucasSlider.value = shares.shareLucas;
-    lucasInput.value = (shares.shareLucas || 0).toFixed(2);
-    caixaSlider.value = shares.shareFundoCaixa;
-    caixaInput.value = (shares.shareFundoCaixa || 0).toFixed(2);
+// ALTERADO: Função renomeada para clareza
+export function updateShareControls(shares) {
+    const controls = {
+        arthur: { slider: 'setting-share-arthur-slider', input: 'setting-share-arthur-input', value: shares.shareArthur },
+        lucas: { slider: 'setting-share-lucas-slider', input: 'setting-share-lucas-input', value: shares.shareLucas },
+        caixa: { slider: 'setting-share-caixa-slider', input: 'setting-share-caixa-input', value: shares.shareFundoCaixa }
+    };
+    for (const key in controls) {
+        const slider = document.getElementById(controls[key].slider);
+        const input = document.getElementById(controls[key].input);
+        const value = controls[key].value || 0;
+        if (slider) slider.value = value;
+        if (input) input.value = value.toFixed(1);
+    }
 }
 
 export function closeModal(modalId) { document.getElementById(modalId)?.classList.add('hidden'); }
