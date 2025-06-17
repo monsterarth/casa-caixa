@@ -91,6 +91,8 @@ async function handleSaveReservation(event) {
             await db.collection('reservations').doc(reservationId).update(reservationData);
         } else {
             reservationData.amountPaid = 0;
+            // Define o valor padrão para isPayoutConfirmed
+            reservationData.isPayoutConfirmed = false; 
             await db.collection('reservations').add(reservationData);
         }
         closeModal('reservation-modal');
@@ -134,6 +136,44 @@ async function handleRegisterPayment(event) {
         closeModal('payment-modal');
     } catch (error) {
         console.error("Erro ao registrar pagamento: ", error);
+    }
+}
+
+// NOVA FUNÇÃO para confirmar o Payout do Airbnb
+async function handleConfirmPayout(reservationId) {
+    if (!reservationId) return;
+    
+    const reservationRef = db.collection('reservations').doc(reservationId);
+    const reservationData = reservations.find(r => r.id === reservationId);
+
+    if (!reservationData || reservationData.isPayoutConfirmed) {
+        alert('Este payout já foi confirmado ou a reserva não foi encontrada.');
+        return;
+    }
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const financialTransaction = {
+                description: `Payout Airbnb - ${reservationData.guestName}`,
+                amount: reservationData.totalValue,
+                date: Timestamp.now(),
+                type: 'revenue',
+                category: 'Receita de Aluguel',
+                reservationId: reservationId
+            };
+            const transactionRef = db.collection('financial_transactions').doc();
+            transaction.set(transactionRef, financialTransaction);
+            transaction.update(reservationRef, { 
+                amountPaid: reservationData.totalValue,
+                isPayoutConfirmed: true
+            });
+        });
+        
+        alert('Payout do Airbnb confirmado com sucesso!');
+        closeModal('reservation-modal');
+    } catch (error) {
+        console.error("Erro ao confirmar o payout: ", error);
+        alert('Ocorreu um erro ao confirmar o payout.');
     }
 }
 
@@ -182,7 +222,7 @@ async function handleSaveSettings(event) {
     };
 
     const totalShare = newSettings.shareArthur + newSettings.shareLucas + newSettings.shareFundoCaixa;
-    if (Math.abs(totalShare - 100) > 0.01) { // Lida com imprecisão de float
+    if (Math.abs(totalShare - 100) > 0.01) {
         alert(`A soma das porcentagens (Shares Arthur, Lucas e Fundo de Caixa) deve ser 100, mas é ${totalShare}.`);
         return;
     }
@@ -204,35 +244,34 @@ function initializeApp() {
 }
 
 function setupEventListeners() {
-    // Auth
     document.getElementById('logout-button').addEventListener('click', () => auth.signOut());
     document.getElementById('login-button')?.addEventListener('click', () => auth.signInWithPopup(provider));
     
-    // Navegação
     document.getElementById('prev-month-btn').addEventListener('click', () => navigateMonth(-1));
     document.getElementById('next-month-btn').addEventListener('click', () => navigateMonth(1));
     document.querySelectorAll('.tab-button').forEach(button => {
         button.addEventListener('click', () => showTab(button.getAttribute('data-tab')));
     });
 
-    // Ações de Adicionar
-    document.getElementById('calendar-add-reservation-btn').addEventListener('click', () => openReservationModal(null, reservations));
-    document.getElementById('reservations-add-reservation-btn').addEventListener('click', () => openReservationModal(null, reservations));
+    document.getElementById('calendar-add-reservation-btn').addEventListener('click', () => openReservationModal(null));
+    document.getElementById('reservations-add-reservation-btn').addEventListener('click', () => openReservationModal(null));
     document.getElementById('add-revenue-btn').addEventListener('click', () => openTransactionModal('revenue'));
     document.getElementById('add-expense-btn').addEventListener('click', () => openTransactionModal('expense'));
+    
+    // Listener para o novo botão de Payout
+    document.getElementById('confirm-payout-btn').addEventListener('click', (e) => {
+        handleConfirmPayout(e.currentTarget.dataset.id);
+    });
 
-    // Submissão de Forms
     document.getElementById('reservation-form').addEventListener('submit', handleSaveReservation);
     document.getElementById('payment-form').addEventListener('submit', handleRegisterPayment);
     document.getElementById('transaction-form').addEventListener('submit', handleSaveTransaction);
     document.getElementById('settings-form').addEventListener('submit', handleSaveSettings);
 
-    // Fechar Modais
     document.querySelectorAll('.close-modal-btn').forEach(button => {
         button.addEventListener('click', () => closeModal(button.getAttribute('data-modal-id')));
     });
 
-    // Event Delegation para botões em tabelas
     document.getElementById('transactions-table-body').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-transaction-btn');
         if (deleteBtn) {
@@ -243,8 +282,7 @@ function setupEventListeners() {
     document.getElementById('reservations-table-body').addEventListener('click', (e) => {
         const editBtn = e.target.closest('.edit-reservation-btn');
         if (editBtn) {
-            const reservation = reservations.find(r => r.id === editBtn.getAttribute('data-id'));
-            if(reservation) openReservationModal(reservation, reservations);
+            window.editReservation(editBtn.getAttribute('data-id'));
         }
     });
 }
@@ -276,11 +314,11 @@ function listenForData() {
 }
 
 function runCalculationsAndUpdateUI() {
-    if (!settings || transactions.length === 0) return;
+    if (!settings || !transactions) return;
     const summary = calculateFinancialSummary(transactions);
     const forecast = calculateForecast(reservations);
     const settlement = calculateSettlement(summary, settings);
-    const fundoCaixa = settlement.fundoCaixaTeorico; // Usando o cálculo do settlement
+    const fundoCaixa = settlement.fundoCaixaTeorico;
     
     updateAllUI({ transactions, reservations, summary, forecast, settlement, fundoCaixa });
 }
@@ -301,13 +339,10 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// --- EXPOSIÇÃO DE FUNÇÕES PARA A JANELA (usado por código dinâmico) ---
-window.openReservationModal = (reservationId, startDate) => {
-    const reservation = reservationId ? reservations.find(r => r.id === reservationId) : null;
-    openReservationModal(reservation, reservations, startDate);
-};
+// --- EXPOSIÇÃO DE FUNÇÕES PARA A JANELA ---
+window.openReservationModal = (reservation) => openReservationModal(reservation);
 window.editReservation = (reservationId) => {
     const reservation = reservations.find(r => r.id === reservationId);
-    if(reservation) openReservationModal(reservation, reservations);
+    if(reservation) openReservationModal(reservation);
 };
 window.openPaymentModal = (reservationId) => openPaymentModal(reservationId, reservations);

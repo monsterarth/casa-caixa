@@ -125,10 +125,13 @@ export function updateFinancialChart(summary) {
     }
 }
 
-export function openReservationModal(reservation, allReservations) {
+export function openReservationModal(reservation) {
     const modal = document.getElementById('reservation-modal');
     const form = document.getElementById('reservation-form');
     form.reset();
+
+    const registerPaymentBtn = document.getElementById('register-payment-btn');
+    const confirmPayoutBtn = document.getElementById('confirm-payout-btn');
 
     if (reservation) { // Modo Edição
         form['reservation-id'].value = reservation.id;
@@ -148,8 +151,21 @@ export function openReservationModal(reservation, allReservations) {
         document.getElementById('details-paid').textContent = formatCurrency(amountPaid);
         document.getElementById('details-due').textContent = formatCurrency(amountDue);
         
-        const registerPaymentBtn = document.getElementById('register-payment-btn');
-        registerPaymentBtn.onclick = () => window.openPaymentModal(reservation.id);
+        // LÓGICA DE VISIBILIDADE DOS BOTÕES
+        if (reservation.sourcePlatform === 'Airbnb') {
+            registerPaymentBtn.classList.add('hidden'); // Esconde o botão de pagamento padrão
+            if (reservation.isPayoutConfirmed) {
+                confirmPayoutBtn.classList.add('hidden'); // Se já foi confirmado, esconde o botão de payout
+            } else {
+                confirmPayoutBtn.classList.remove('hidden'); // Mostra o botão de payout
+                confirmPayoutBtn.dataset.id = reservation.id; // Adiciona o ID ao botão para o handler
+            }
+        } else {
+            confirmPayoutBtn.classList.add('hidden'); // Esconde o botão de payout
+            registerPaymentBtn.classList.remove('hidden'); // Mostra o de pagamento padrão
+            registerPaymentBtn.onclick = () => window.openPaymentModal(reservation.id);
+        }
+
         document.getElementById('financial-details-section').classList.remove('hidden');
 
     } else { // Modo Criação
