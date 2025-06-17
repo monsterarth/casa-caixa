@@ -1,7 +1,25 @@
 body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-.tab-button { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; transition: all 0.3s ease; }
-.tab-button.active { background-color: #38bdf8; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+.tab-button { 
+    padding: 0.75rem 1.25rem; /* Um pouco mais de espaço */
+    border-radius: 0.5rem; 
+    font-weight: 600; /* Mais forte */
+    transition: all 0.2s ease-in-out; 
+    border: 2px solid transparent; /* Borda invisível para não pular */
+    color: #475569; /* Cor cinza para inativo */
+}
+
+.tab-button:hover {
+    background-color: #f1f5f9; /* Fundo cinza claro ao passar o mouse */
+    color: #0f172a;
+}
+
+.tab-button.active { 
+    background-color: #f0f9ff; /* Fundo azul bem claro */
+    color: #0ea5e9; /* Cor do texto azul */
+    border-color: #0ea5e9; /* Borda azul visível */
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 .stat-card { transition: all 0.3s ease; }

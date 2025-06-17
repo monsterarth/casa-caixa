@@ -1,12 +1,13 @@
 import { auth, db, provider, Timestamp } from './firebase-config.js';
-import { updateAllUI, renderCalendar, openReservationModal, closeModal, showTab } from './ui.js';
+import { updateAllUI, renderCalendar, openReservationModal, openPaymentModal, closeModal, showTab, populateSettingsForm } from './ui.js';
 
 // --- ESTADO GLOBAL DO APP ---
 let currentDate = new Date();
 let reservations = [];
 let transactions = [];
+let settings = {}; // Guarda as configurações vindas do Firebase
 
-// --- LÓGICA FINANCEIRA ---
+// --- LÓGICA DE CÁLCULO ---
 function calculateFinancialSummary(allTransactions) {
     const summary = { confirmedRevenue: 0, condominiumExpenses: 0, totalExpenses: 0 };
     allTransactions.forEach(tx => {
@@ -19,9 +20,9 @@ function calculateFinancialSummary(allTransactions) {
             }
         }
     });
-    const cashBalance = summary.confirmedRevenue - summary.totalExpenses;
-    const netProfitToDivide = summary.confirmedRevenue - summary.condominiumExpenses;
-    return { ...summary, cashBalance, netProfitToDivide };
+    summary.cashBalance = summary.confirmedRevenue - summary.totalExpenses;
+    summary.netProfitToDivide = summary.confirmedRevenue - summary.condominiumExpenses;
+    return summary;
 }
 
 function calculateForecast(allReservations) {
@@ -31,8 +32,25 @@ function calculateForecast(allReservations) {
     }, 0);
 }
 
+// NOVA FUNÇÃO: Calcula o acerto de contas com base nas configurações
+function calculateSettlement(summary, appSettings) {
+    const netProfit = summary.netProfitToDivide > 0 ? summary.netProfitToDivide : 0;
+    
+    const shareCaixaPercent = appSettings.shareFundoCaixa || 0;
+    const shareArthurPercent = appSettings.shareArthur || 0;
+    const shareLucasPercent = appSettings.shareLucas || 0;
 
-// --- LÓGICA DE RESERVAS E PAGAMENTOS ---
+    const valorParaCaixa = netProfit * (shareCaixaPercent / 100);
+    const lucroParaSocios = netProfit - valorParaCaixa;
+
+    return {
+        parteArthur: lucroParaSocios * (shareArthurPercent / 100),
+        parteLucas: lucroParaSocios * (shareLucasPercent / 100),
+    };
+}
+
+
+// --- LÓGICA DE EVENTOS E DADOS ---
 async function handleAddOrUpdateReservation(event) {
     event.preventDefault();
     const form = event.target;
@@ -112,6 +130,31 @@ async function handleRegisterPayment(event) {
     }
 }
 
+// NOVA FUNÇÃO: Salva as configurações no Firebase
+async function handleSaveSettings(event) {
+    event.preventDefault();
+    const form = event.target;
+    const newSettings = {
+        shareArthur: parseFloat(form['setting-share-arthur'].value),
+        shareLucas: parseFloat(form['setting-share-lucas'].value),
+        shareFundoCaixa: parseFloat(form['setting-share-caixa'].value),
+        fundoReservaFixo: parseFloat(form['setting-reserva-fixo'].value)
+    };
+
+    const totalShare = newSettings.shareArthur + newSettings.shareLucas + newSettings.shareFundoCaixa;
+    if (totalShare !== 100) {
+        alert(`A soma das porcentagens (Shares Arthur, Lucas e Fundo de Caixa) deve ser 100, mas é ${totalShare}.`);
+        return;
+    }
+
+    try {
+        await db.collection('settings').doc('main').update(newSettings);
+        alert('Configurações salvas com sucesso!');
+    } catch (error) {
+        console.error("Erro ao salvar configurações: ", error);
+        alert("Não foi possível salvar as configurações.");
+    }
+}
 
 // --- LÓGICA PRINCIPAL DO APP ---
 function initializeApp() {
@@ -121,16 +164,13 @@ function initializeApp() {
 }
 
 function setupEventListeners() {
-    // --- Eventos que já funcionavam ---
     document.getElementById('logout-button').addEventListener('click', () => auth.signOut());
     document.getElementById('prev-month-btn').addEventListener('click', () => navigateMonth(-1));
     document.getElementById('next-month-btn').addEventListener('click', () => navigateMonth(1));
     document.getElementById('reservation-form').addEventListener('submit', handleAddOrUpdateReservation);
     document.getElementById('payment-form').addEventListener('submit', handleRegisterPayment);
+    document.getElementById('settings-form').addEventListener('submit', handleSaveSettings);
 
-    // --- NOVA LÓGICA DE EVENTOS ---
-
-    // Abas de navegação (Dashboard, Calendário, etc.)
     const tabButtons = document.querySelectorAll('.tab-button');
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -139,14 +179,11 @@ function setupEventListeners() {
         });
     });
 
-    // Botão "Nova Reserva"
     const addReservationBtn = document.getElementById('add-reservation-btn');
     addReservationBtn.addEventListener('click', () => {
-        // Chamamos a função passando os dados que ela precisa
         openReservationModal(null, reservations, null);
     });
-
-    // Botões de fechar modais
+    
     const closeModalButtons = document.querySelectorAll('.close-modal-btn');
     closeModalButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -158,28 +195,43 @@ function setupEventListeners() {
 
 function navigateMonth(direction) {
     currentDate.setMonth(currentDate.getMonth() + direction);
-    renderCalendar(currentDate, reservations); // Passa os dados necessários
+    renderCalendar(currentDate, reservations);
 }
 
 function listenForData() {
+    db.collection('settings').doc('main').onSnapshot(doc => {
+        if (doc.exists) {
+            settings = doc.data();
+            populateSettingsForm(settings);
+            runCalculationsAndUpdateUI();
+        } else {
+            console.log("Documento de configurações não encontrado! Crie-o no Firebase.");
+        }
+    });
+
     db.collection('financial_transactions').orderBy('date', 'desc').onSnapshot(snapshot => {
         transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const summary = calculateFinancialSummary(transactions);
-        const forecast = calculateForecast(reservations);
-        updateAllUI(transactions, reservations, summary, forecast);
-    }, error => console.error("Erro ao buscar transações:", error));
+        runCalculationsAndUpdateUI();
+    });
 
     db.collection('reservations').onSnapshot(snapshot => {
         reservations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderCalendar(currentDate, reservations);
-        const summary = calculateFinancialSummary(transactions);
-        const forecast = calculateForecast(reservations);
-        updateAllUI(transactions, reservations, summary, forecast);
-    }, error => console.error("Erro ao buscar reservas:", error));
+        runCalculationsAndUpdateUI();
+    });
 }
 
+// NOVA FUNÇÃO CENTRALIZADA: Roda todos os cálculos e atualiza a UI
+function runCalculationsAndUpdateUI() {
+    if (!settings) return; // Não roda os cálculos se as configurações não foram carregadas
+    const summary = calculateFinancialSummary(transactions);
+    const forecast = calculateForecast(reservations);
+    const settlement = calculateSettlement(summary, settings);
+    
+    updateAllUI(transactions, reservations, summary, forecast, settlement);
+}
 
-// --- PONTO DE ENTRADA PRINCIPAL ---
+// --- PONTO DE ENTRADA PRINCIPAL E AUTENTICAÇÃO ---
 auth.onAuthStateChanged(user => {
     const loginContainer = document.getElementById('login-container');
     const appContainer = document.getElementById('app');
@@ -198,3 +250,8 @@ auth.onAuthStateChanged(user => {
 document.getElementById('login-button')?.addEventListener('click', () => {
     auth.signInWithPopup(provider).catch(error => console.error("Erro no login:", error));
 });
+
+// Expõe funções na window para serem chamadas por eventos que ainda não foram migrados
+// ou que são chamados de dentro de HTML gerado dinamicamente.
+window.openReservationModal = (id, startDate) => openReservationModal(id, reservations, startDate);
+window.openPaymentModal = (id) => openPaymentModal(id, reservations);

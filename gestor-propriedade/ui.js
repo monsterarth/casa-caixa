@@ -1,21 +1,31 @@
 // A variável do gráfico pertence à UI, então ela fica aqui.
 let financialChart = null;
 
-// As funções agora recebem os dados que precisam para funcionar
-export function updateAllUI(transactions, reservations, summary, forecast) {
-    updateDashboardUI(summary, forecast);
+// ATUALIZADO: Recebe o "settlement" e passa para a função de UI do dashboard
+export function updateAllUI(transactions, reservations, summary, forecast, settlement) {
+    updateDashboardUI(summary, forecast, settlement); // Passa o settlement adiante
     updateFinancialChart(summary);
     renderTransactionsTable(transactions);
-    // A renderização do calendário será chamada separadamente para não recarregar a UI inteira sempre.
 }
 
-export function updateDashboardUI(summary, forecast) {
+// ATUALIZADO: Recebe e usa os dados do "settlement" para preencher os novos campos
+export function updateDashboardUI(summary, forecast, settlement) {
     const el = id => document.getElementById(id);
+    
+    // Cards principais
     el('cashBalance').textContent = formatCurrency(summary.cashBalance);
     el('netProfit').textContent = formatCurrency(summary.netProfitToDivide);
+    el('forecast').textContent = formatCurrency(forecast);
+
+    // Detalhamento para Divisão
     el('confirmedRevenue').textContent = formatCurrency(summary.confirmedRevenue);
     el('condominiumExpenses').textContent = formatCurrency(summary.condominiumExpenses);
-    el('forecast').textContent = formatCurrency(forecast);
+    
+    // Novos valores do Acerto de Contas
+    el('settlement-arthur-share').textContent = formatCurrency(settlement.parteArthur);
+    el('settlement-arthur-total').textContent = formatCurrency(settlement.parteArthur); // Ajustar futuramente se houver descontos pessoais
+    el('settlement-lucas-share').textContent = formatCurrency(settlement.parteLucas);
+    el('settlement-lucas-total').textContent = formatCurrency(settlement.parteLucas); // Ajustar futuramente se houver descontos pessoais
 }
 
 export function updateFinancialChart(summary) {
@@ -84,7 +94,8 @@ export function renderCalendar(currentDate, reservations) {
         
         dayCell.addEventListener('click', (e) => {
             if (e.target.closest('.event-chip')) return;
-            openReservationModal(null, reservations, today.toISOString().split('T')[0]);
+            // A chamada para openReservationModal agora é feita pelo app.js através da window
+            window.openReservationModal(null, today.toISOString().split('T')[0]);
         });
 
         const eventsContainer = dayCell.querySelector('.events-container');
@@ -100,7 +111,10 @@ export function renderCalendar(currentDate, reservations) {
             const eventDiv = document.createElement('div');
             eventDiv.className = `event-chip text-white text-xs p-1 rounded-md truncate cursor-pointer ${propColor}`;
             eventDiv.textContent = res.guestName;
-            eventDiv.addEventListener('click', () => openReservationModal(res.id, reservations));
+            eventDiv.addEventListener('click', () => {
+                // A chamada para openReservationModal agora é feita pelo app.js através da window
+                window.openReservationModal(res.id);
+            });
             eventsContainer.appendChild(eventDiv);
         });
         grid.appendChild(dayCell);
@@ -133,7 +147,8 @@ export function openReservationModal(reservationId = null, allReservations, star
             document.getElementById('details-due').textContent = formatCurrency(amountDue);
             
             const registerPaymentBtn = document.getElementById('register-payment-btn');
-            registerPaymentBtn.onclick = () => openPaymentModal(reservationId, allReservations);
+            // A chamada para openPaymentModal também será exposta na window
+            registerPaymentBtn.onclick = () => window.openPaymentModal(reservationId);
             financialSection.classList.remove('hidden');
 
         }
@@ -172,11 +187,26 @@ export function closeModal(modalId) {
 
 export function showTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(button => {
+        if (button.getAttribute('data-tab') === tabId) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
     document.getElementById(`${tabId}-tab`)?.classList.add('active');
-    document.querySelector(`button[onclick="showTab('${tabId}')"]`)?.classList.add('active');
 }
 
 export function formatCurrency(value) { 
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0); 
+}
+
+// NOVA FUNÇÃO: Preenche o formulário de configurações com os dados do Firebase
+export function populateSettingsForm(settings) {
+    if (!settings) return;
+    const el = id => document.getElementById(id);
+    el('setting-share-arthur').value = settings.shareArthur || 0;
+    el('setting-share-lucas').value = settings.shareLucas || 0;
+    el('setting-share-caixa').value = settings.shareFundoCaixa || 0;
+    el('setting-reserva-fixo').value = settings.fundoReservaFixo || 0;
 }
