@@ -45,8 +45,8 @@
                                 <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (R)</h3>
                                 <p id="cashBalance" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
                             </div>
-                             <div class="stat-card bg-white p-6 rounded-xl shadow-md">
-                                <h3 class="text-slate-500 text-lg font-medium">Previsão a Receber</h3>
+                             <div id="forecast-card" class="stat-card bg-white p-6 rounded-xl shadow-md cursor-pointer hover:bg-amber-50">
+                                <h3 class="text-slate-500 text-lg font-medium">Previsão a Receber <i class="fas fa-info-circle text-xs"></i></h3>
                                 <p id="forecast" class="text-3xl font-bold text-amber-500 mt-2">R$ 0,00</p>
                             </div>
                             <div class="stat-card bg-white p-6 rounded-xl shadow-md">
@@ -59,13 +59,15 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-md">
+                                <h3 class="text-xl font-semibold text-slate-800 mb-4">Próximos Hóspedes</h3>
+                                <div id="upcoming-guests-list" class="space-y-4">
+                                    <p class="text-slate-500">Nenhuma reserva confirmada para os próximos dias.</p>
+                                </div>
+                            </div>
                             <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
                                 <h3 class="text-xl font-semibold text-slate-800 mb-4">Evolução Financeira (Últimos 6 meses)</h3>
                                 <div class="h-64"><canvas id="financialEvolutionChart"></canvas></div>
-                            </div>
-                            <div class="bg-white p-6 rounded-xl shadow-md">
-                                 <h3 class="text-xl font-semibold text-slate-800 mb-4">Origem da Receita</h3>
-                                <div class="h-64"><canvas id="sourceBreakdownChart"></canvas></div>
                             </div>
                         </div>
                     </div>
@@ -80,15 +82,9 @@
                             <h3 id="current-month-year" class="text-xl font-bold text-center w-48"></h3>
                             <button id="next-month-btn" class="p-2 rounded-full hover:bg-slate-100 transition-colors"><i class="fas fa-chevron-right"></i></button>
                         </div>
-                        <div>
-                             <button id="calendar-add-reservation-btn" class="w-full bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">
-                                <i class="fas fa-plus mr-2"></i>Nova Reserva
-                            </button>
-                        </div>
+                        <div><button id="calendar-add-reservation-btn" class="w-full bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors"><i class="fas fa-plus mr-2"></i>Nova Reserva</button></div>
                     </div>
-                    <div class="grid grid-cols-7 gap-2 text-center font-bold text-slate-600 mb-2">
-                        <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
-                    </div>
+                    <div class="grid grid-cols-7 gap-2 text-center font-bold text-slate-600 mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
                     <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
                 </div>
             </div>
@@ -97,25 +93,15 @@
                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
                      <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                         <h2 class="text-2xl font-semibold text-slate-800">Gerenciador de Reservas</h2>
-                        <button id="reservations-add-reservation-btn" class="w-full sm:w-auto bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">
-                            <i class="fas fa-plus mr-2"></i>Nova Reserva
-                        </button>
+                        <button id="reservations-add-reservation-btn" class="w-full sm:w-auto bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors"><i class="fas fa-plus mr-2"></i>Nova Reserva</button>
                      </div>
                      <div class="flex flex-wrap gap-4 mb-4 p-4 bg-slate-50 rounded-lg">
-                        <div class="flex-grow"><label for="res-filter-search" class="block text-sm font-medium text-slate-600">Buscar por nome</label><input type="text" id="res-filter-search" class="input-style" placeholder="Nome do hóspede..."></div>
+                        <div class="flex-grow"><label for="res-filter-search" class="block text-sm font-medium text-slate-600">Buscar por nome</label><input type="text" id="res-filter-search" class="input-style" placeholder="Nome do cliente..."></div>
                         <div class="flex-grow"><label for="res-filter-status" class="block text-sm font-medium text-slate-600">Filtrar por Status</label><select id="res-filter-status" class="input-style"><option value="">Todos</option><option value="Pré-reserva">Pré-reserva</option><option value="Confirmada">Confirmada</option><option value="Em andamento">Em andamento</option><option value="Finalizada">Finalizada</option><option value="Cancelada">Cancelada</option></select></div>
                      </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead class="bg-slate-50 text-slate-600">
-                                <tr>
-                                    <th class="p-3">Hóspede</th>
-                                    <th class="p-3">Período</th>
-                                    <th class="p-3">Status</th>
-                                    <th class="p-3 text-right">Valor Total</th>
-                                    <th class="p-3 text-center">Ações</th>
-                                </tr>
-                            </thead>
+                            <thead class="bg-slate-50 text-slate-600"><tr><th class="p-3">Cliente</th><th class="p-3">Período</th><th class="p-3">Status</th><th class="p-3 text-right">Valor Total</th><th class="p-3 text-center">Ações</th></tr></thead>
                             <tbody id="reservations-table-body" class="divide-y divide-slate-200"></tbody>
                         </table>
                     </div>
@@ -152,18 +138,18 @@
                         <div class="space-y-3">
                             <div class="flex justify-between items-center"><span class="text-slate-600">Cota do Lucro (Teórica):</span><span id="arthur-share" class="font-bold text-lg">R$ 0,00</span></div>
                             <div class="flex justify-between items-center"><span class="text-slate-600">Despesas Pessoais (Adiantado):</span><span id="arthur-expenses" class="font-bold text-lg text-red-500">R$ 0,00</span></div>
-                            <hr class="my-4">
-                            <div class="flex justify-between items-center text-xl"><span class="font-semibold text-slate-800">Saldo a Receber (Final):</span><span id="arthur-balance" class="font-bold text-green-600">R$ 0,00</span></div>
+                            <hr class="my-4"><div class="flex justify-between items-center text-xl"><span class="font-semibold text-slate-800">Saldo a Receber (Final):</span><span id="arthur-balance" class="font-bold text-green-600">R$ 0,00</span></div>
                         </div>
+                        <div class="mt-6"><h3 class="text-lg font-semibold text-slate-700 border-t pt-4">Extrato de Despesas Pessoais</h3><div id="arthur-statement" class="mt-2 space-y-2 text-sm"></div></div>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-md">
                         <h2 class="text-2xl font-bold text-slate-800 mb-4">Sócio: Lucas</h2>
                         <div class="space-y-3">
                             <div class="flex justify-between items-center"><span class="text-slate-600">Cota do Lucro (Teórica):</span><span id="lucas-share" class="font-bold text-lg">R$ 0,00</span></div>
                             <div class="flex justify-between items-center"><span class="text-slate-600">Despesas Pessoais (Adiantado):</span><span id="lucas-expenses" class="font-bold text-lg text-red-500">R$ 0,00</span></div>
-                            <hr class="my-4">
-                            <div class="flex justify-between items-center text-xl"><span class="font-semibold text-slate-800">Saldo a Receber (Final):</span><span id="lucas-balance" class="font-bold text-green-600">R$ 0,00</span></div>
+                            <hr class="my-4"><div class="flex justify-between items-center text-xl"><span class="font-semibold text-slate-800">Saldo a Receber (Final):</span><span id="lucas-balance" class="font-bold text-green-600">R$ 0,00</span></div>
                         </div>
+                        <div class="mt-6"><h3 class="text-lg font-semibold text-slate-700 border-t pt-4">Extrato de Despesas Pessoais</h3><div id="lucas-statement" class="mt-2 space-y-2 text-sm"></div></div>
                     </div>
                 </div>
             </div>
@@ -172,20 +158,20 @@
                 <div class="bg-white p-6 rounded-xl shadow-md max-w-2xl mx-auto">
                     <h2 class="text-2xl font-semibold text-slate-800 mb-6">Configurações Financeiras</h2>
                     <form id="settings-form">
-                        <div class="space-y-4">
+                        <div id="share-settings-wrapper" class="space-y-4">
                             <h3 class="text-lg font-medium text-slate-700 border-b pb-2">Divisão do Faturamento (%)</h3>
-                            <p class="text-sm text-slate-500">Defina como cada R$ 100 de lucro líquido é dividido. A soma deve ser 100%.</p>
-                            <div class="grid grid-cols-3 gap-4">
-                                <div><label for="setting-share-arthur" class="block text-sm font-medium">Arthur</label><input type="number" step="0.01" id="setting-share-arthur" class="input-style"></div>
-                                <div><label for="setting-share-lucas" class="block text-sm font-medium">Lucas</label><input type="number" step="0.01" id="setting-share-lucas" class="input-style"></div>
-                                <div><label for="setting-share-caixa" class="block text-sm font-medium">Fundo de Caixa</label><input type="number" step="0.01" id="setting-share-caixa" class="input-style"></div>
-                            </div>
-                             <h3 class="text-lg font-medium text-slate-700 border-b pb-2 pt-4">Segurança</h3>
-                            <div>
-                                <label for="setting-reserve-fund" class="block text-sm font-medium">Fundo de Reserva Fixo (R$)</label>
-                                <p class="text-sm text-slate-500">Valor mínimo que deve ser mantido no caixa para emergências.</p>
-                                <input type="number" step="100" id="setting-reserve-fund" class="input-style">
-                            </div>
+                            <p class="text-sm text-slate-500">Ajuste a divisão do lucro. A soma será sempre 100%.</p>
+                            
+                            <div class="share-control-group"><label for="setting-share-arthur-slider" class="block text-sm font-medium">Arthur</label><div class="flex items-center gap-4"><input type="range" id="setting-share-arthur-slider" min="0" max="100" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"><input type="number" id="setting-share-arthur-input" class="input-style w-24 text-center font-bold" min="0" max="100"></div></div>
+                            <div class="share-control-group"><label for="setting-share-lucas-slider" class="block text-sm font-medium">Lucas</label><div class="flex items-center gap-4"><input type="range" id="setting-share-lucas-slider" min="0" max="100" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"><input type="number" id="setting-share-lucas-input" class="input-style w-24 text-center font-bold" min="0" max="100"></div></div>
+                             <div class="share-control-group"><label for="setting-share-caixa-slider" class="block text-sm font-medium">Fundo de Caixa</label><div class="flex items-center gap-4"><input type="range" id="setting-share-caixa-slider" min="0" max="100" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"><input type="number" id="setting-share-caixa-input" class="input-style w-24 text-center font-bold" min="0" max="100"></div></div>
+                        </div>
+
+                         <h3 class="text-lg font-medium text-slate-700 border-b pb-2 pt-6">Segurança</h3>
+                        <div>
+                            <label for="setting-reserve-fund" class="block text-sm font-medium">Fundo de Reserva Fixo (R$)</label>
+                            <p class="text-sm text-slate-500">Valor mínimo que deve ser mantido no caixa para emergências.</p>
+                            <input type="number" step="100" id="setting-reserve-fund" class="input-style">
                         </div>
                         <div class="flex justify-end mt-8">
                             <button type="submit" class="bg-sky-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-sky-600">Salvar Configurações</button>
@@ -197,111 +183,54 @@
     </div>
 
     <div id="reservation-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4 overflow-y-auto" style="max-height: 90vh;">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="reservation-modal-title" class="text-2xl font-bold">Nova Reserva</h2>
-                <button type="button" class="close-modal-btn text-2xl text-slate-500 hover:text-slate-800" data-modal-id="reservation-modal">&times;</button>
-            </div>
-            
-            <div id="financial-details-section" class="hidden mb-6 bg-slate-50 p-4 rounded-lg">
-                 <h3 class="text-lg font-semibold text-slate-800 mb-3">Resumo Financeiro da Reserva</h3>
-                <div class="grid grid-cols-3 gap-4 text-center">
-                    <div><p class="text-sm text-slate-500">Valor Total</p><p id="details-total" class="font-bold text-lg text-slate-900">R$ 0,00</p></div>
-                    <div><p class="text-sm text-slate-500">Valor Pago</p><p id="details-paid" class="font-bold text-lg text-green-600">R$ 0,00</p></div>
-                    <div><p class="text-sm text-slate-500">Saldo Devedor</p><p id="details-due" class="font-bold text-lg text-red-600">R$ 0,00</p></div>
-                </div>
-                <div id="payment-button-wrapper" class="mt-4 text-center">
-    <button id="register-payment-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors w-full"><i class="fas fa-dollar-sign mr-2"></i>Registrar Pagamento</button>
-    <button id="confirm-payout-btn" class="hidden bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors w-full"><i class="fab fa-airbnb mr-2"></i>Confirmar Payout Airbnb</button>
-</div>
-            </div>
-
-            <form id="reservation-form">
-                <input type="hidden" id="reservation-id">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 overflow-y-auto" style="max-height: 90vh;">
+            <div class="flex justify-between items-center mb-4"><h2 id="reservation-modal-title" class="text-2xl font-bold">Nova Reserva</h2><button type="button" class="close-modal-btn text-2xl text-slate-500 hover:text-slate-800" data-modal-id="reservation-modal">&times;</button></div>
+            <div id="financial-details-section" class="hidden mb-6 bg-slate-50 p-4 rounded-lg"><h3 class="text-lg font-semibold text-slate-800 mb-3">Resumo Financeiro da Reserva</h3><div class="grid grid-cols-3 gap-4 text-center"><div><p class="text-sm text-slate-500">Valor Total</p><p id="details-total" class="font-bold text-lg text-slate-900">R$ 0,00</p></div><div><p class="text-sm text-slate-500">Valor Pago</p><p id="details-paid" class="font-bold text-lg text-green-600">R$ 0,00</p></div><div><p class="text-sm text-slate-500">Saldo Devedor</p><p id="details-due" class="font-bold text-lg text-red-600">R$ 0,00</p></div></div><div id="payment-button-wrapper" class="mt-4 text-center"><button id="register-payment-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors w-full"><i class="fas fa-dollar-sign mr-2"></i>Registrar Pagamento</button><button id="confirm-payout-btn" class="hidden bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors w-full"><i class="fab fa-airbnb mr-2"></i>Confirmar Payout Airbnb</button></div></div>
+            <form id="reservation-form"><input type="hidden" id="reservation-id">
                 <div class="space-y-4">
+                    <div><label for="res-client-select" class="block text-sm font-medium text-slate-700">Cliente</label><div class="flex items-center gap-2"><select id="res-client-select" required class="input-style w-full"></select><button type="button" id="add-new-client-btn" class="flex-shrink-0 bg-sky-500 text-white font-bold py-2 px-3 rounded-lg hover:bg-sky-600"><i class="fas fa-plus"></i></button></div></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="res-status" class="block text-sm font-medium text-slate-700">Status</label>
-                            <select id="res-status" required class="input-style">
-                                <option value="Pré-reserva">Pré-reserva</option><option value="Confirmada">Confirmada</option><option value="Em andamento">Em andamento</option><option value="Finalizada">Finalizada</option><option value="Cancelada">Cancelada</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="res-source-platform" class="block text-sm font-medium text-slate-700">Plataforma</label>
-                            <select id="res-source-platform" required class="input-style">
-                                <option value="Direto">Direto</option><option value="Airbnb">Airbnb</option><option value="Booking">Booking</option><option value="Outro">Outro</option>
-                            </select>
-                        </div>
+                        <div><label for="res-status" class="block text-sm font-medium text-slate-700">Status</label><select id="res-status" required class="input-style"><option value="Pré-reserva">Pré-reserva</option><option value="Confirmada">Confirmada</option><option value="Em andamento">Em andamento</option><option value="Finalizada">Finalizada</option><option value="Cancelada">Cancelada</option></select></div>
+                        <div><label for="res-source-platform" class="block text-sm font-medium text-slate-700">Plataforma</label><select id="res-source-platform" required class="input-style"><option value="Direto">Direto</option><option value="Airbnb">Airbnb</option><option value="Booking">Booking</option><option value="Outro">Outro</option></select></div>
                     </div>
-                    <div><label for="res-guest-name" class="block text-sm font-medium text-slate-700">Nome do Hóspede</label><input type="text" id="res-guest-name" required class="input-style"></div>
                     <div><label for="res-property" class="block text-sm font-medium text-slate-700">Propriedade</label><select id="res-property" required class="input-style"><option value="estancia_do_vale">Estância do Vale</option><option value="vale_do_sabia">Vale do Sabiá</option></select></div>
                     <div class="grid grid-cols-2 gap-4">
                         <div><label for="res-start-date" class="block text-sm font-medium text-slate-700">Data de Entrada</label><input type="date" id="res-start-date" required class="input-style"></div>
                         <div><label for="res-end-date" class="block text-sm font-medium text-slate-700">Data de Saída</label><input type="date" id="res-end-date" required class="input-style"></div>
                     </div>
                     <div><label for="res-total-value" class="block text-sm font-medium text-slate-700">Valor Total (R$)</label><input type="number" step="0.01" id="res-total-value" required class="input-style"></div>
+                    <div><label for="res-observation" class="block text-sm font-medium text-slate-700">Observações da Reserva</label><textarea id="res-observation" rows="3" class="input-style"></textarea></div>
                 </div>
-                <div class="flex justify-end gap-2 mt-8">
-                    <button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="reservation-modal">Cancelar</button>
-                    <button type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar Reserva</button>
-                </div>
+                <div class="flex justify-end gap-2 mt-8"><button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="reservation-modal">Cancelar</button><button type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar Reserva</button></div>
             </form>
         </div>
     </div>
     
-    <div id="payment-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
-            <h2 class="text-2xl font-bold mb-6">Registrar Pagamento</h2>
-            <form id="payment-form">
-                <input type="hidden" id="payment-reservation-id">
-                <p class="mb-4">Registrando pagamento para a reserva de <strong id="payment-guest-name"></strong>.</p>
-                <div>
-                    <label for="payment-amount" class="block text-sm font-medium text-slate-700">Valor do Pagamento (R$)</label>
-                    <input type="number" step="0.01" id="payment-amount" required class="input-style">
-                </div>
-                <div class="flex justify-end gap-2 mt-8">
-                    <button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="payment-modal">Cancelar</button>
-                    <button type="submit" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Confirmar Pagamento</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <div id="payment-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden"><div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4"><h2 class="text-2xl font-bold mb-6">Registrar Pagamento</h2><form id="payment-form"><input type="hidden" id="payment-reservation-id"><p class="mb-4">Registrando pagamento para a reserva de <strong id="payment-guest-name"></strong>.</p><div><label for="payment-amount" class="block text-sm font-medium text-slate-700">Valor do Pagamento (R$)</label><input type="number" step="0.01" id="payment-amount" required class="input-style"></div><div class="flex justify-end gap-2 mt-8"><button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="payment-modal">Cancelar</button><button type="submit" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Confirmar Pagamento</button></div></form></div></div>
 
     <div id="transaction-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
-            <div class="flex justify-between items-center mb-6">
-                <h2 id="transaction-modal-title" class="text-2xl font-bold">Nova Despesa</h2>
-                <button type="button" class="close-modal-btn text-2xl text-slate-500 hover:text-slate-800" data-modal-id="transaction-modal">&times;</button>
-            </div>
-            <form id="transaction-form">
-                <input type="hidden" id="transaction-id">
-                <input type="hidden" id="transaction-type">
+            <div class="flex justify-between items-center mb-6"><h2 id="transaction-modal-title" class="text-2xl font-bold">Nova Despesa</h2><button type="button" class="close-modal-btn text-2xl text-slate-500 hover:text-slate-800" data-modal-id="transaction-modal">&times;</button></div>
+            <form id="transaction-form"><input type="hidden" id="transaction-id"><input type="hidden" id="transaction-type">
                 <div class="space-y-4">
                     <div><label for="tx-description" class="block text-sm font-medium text-slate-700">Descrição</label><input type="text" id="tx-description" required class="input-style"></div>
                     <div><label for="tx-amount" class="block text-sm font-medium text-slate-700">Valor (R$)</label><input type="number" step="0.01" id="tx-amount" required class="input-style"></div>
                     <div><label for="tx-date" class="block text-sm font-medium text-slate-700">Data</label><input type="date" id="tx-date" required class="input-style"></div>
                     <div id="category-wrapper">
                         <label for="tx-category" class="block text-sm font-medium text-slate-700">Categoria da Despesa</label>
-                         <select id="tx-category" required class="input-style">
-                            <option value="Condomínio">Condomínio</option>
-                            <option value="Limpeza">Limpeza</option>
-                            <option value="Manutenção">Manutenção</option>
-                            <option value="Utilidades">Utilidades (Luz, Água, Net)</option>
-                            <option value="Impostos">Impostos</option>
-                            <option value="Marketing">Marketing</option>
-                            <option value="Pessoal - Arthur">Pessoal - Arthur</option>
-                            <option value="Pessoal - Lucas">Pessoal - Lucas</option>
-                            <option value="Outras">Outras</option>
-                        </select>
+                         <select id="tx-category" required class="input-style"><option value="Condomínio">Condomínio</option><option value="Limpeza">Limpeza</option><option value="Manutenção/Reparos">Manutenção/Reparos</option><option value="Obras/Investimentos">Obras/Investimentos</option><option value="Utilidades">Utilidades (Luz, Água, Net)</option><option value="Impostos">Impostos</option><option value="Marketing">Marketing</option><option value="Pagamento Sócios">Pagamento Sócios</option><option value="Pessoal - Arthur">Pessoal - Arthur</option><option value="Pessoal - Lucas">Pessoal - Lucas</option><option value="Outras">Outras</option></select>
                     </div>
                 </div>
-                <div class="flex justify-end gap-2 mt-8">
-                    <button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="transaction-modal">Cancelar</button>
-                    <button id="transaction-submit-button" type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar</button>
-                </div>
+                <div class="flex justify-end gap-2 mt-8"><button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="transaction-modal">Cancelar</button><button id="transaction-submit-button" type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">Salvar</button></div>
             </form>
         </div>
     </div>
+    
+    <div id="forecast-details-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 m-4"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Próximas Entradas Previstas</h2><button type="button" class="close-modal-btn text-2xl text-slate-500 hover:text-slate-800" data-modal-id="forecast-details-modal">&times;</button></div><div class="overflow-x-auto"><table class="w-full text-left"><thead class="bg-slate-50 text-slate-600"><tr><th class="p-3">Cliente</th><th class="p-3">Data de Entrada</th><th class="p-3 text-right">Valor a Receber</th></tr></thead><tbody id="forecast-details-body" class="divide-y divide-slate-200"></tbody></table></div></div></div>
+
+    <div id="client-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden"><div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4"><div class="flex justify-between items-center mb-6"><h2 id="client-modal-title" class="text-2xl font-bold">Novo Cliente</h2><button type="button" class="close-modal-btn text-2xl text-slate-500 hover:text-slate-800" data-modal-id="client-modal">&times;</button></div><form id="client-form"><input type="hidden" id="client-id"><div class="space-y-4"><div><label for="client-name" class="block text-sm font-medium text-slate-700">Nome Completo</label><input type="text" id="client-name" required class="input-style"></div><div><label for="client-phone" class="block text-sm font-medium text-slate-700">Telefone</label><input type="tel" id="client-phone" class="input-style"></div><div><label for="client-notes" class="block text-sm font-medium text-slate-700">Observações do Cliente</label><textarea id="client-notes" rows="3" class="input-style"></textarea></div></div><div class="flex justify-end gap-2 mt-8"><button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="client-modal">Cancelar</button><button type="submit" class="bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600">Salvar Cliente</button></div></form></div></div>
+
+    <div id="delete-reservation-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center hidden"><div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4"><h2 class="text-2xl font-bold mb-4">Excluir Reserva</h2><form id="delete-reservation-form"><input type="hidden" id="delete-res-id"><div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-4"><p>Você está prestes a excluir a reserva de <strong id="delete-res-client-name"></strong>.</p><p class="text-sm mt-1">Valor pago até o momento: <strong id="delete-res-paid-amount"></strong>.</p></div><p class="mb-2 font-medium text-slate-700">O que fazer com o valor já pago?</p><div class="space-y-2"><div><label class="flex items-center"><input type="radio" name="delete-action" value="refund" class="h-4 w-4 text-sky-600 border-slate-300 focus:ring-sky-500"> <span class="ml-2">Estornar valor pago (cria uma despesa)</span></label></div><div><label class="flex items-center"><input type="radio" name="delete-action" value="keep" checked class="h-4 w-4 text-sky-600 border-slate-300 focus:ring-sky-500"> <span class="ml-2">Manter lançamentos (não faz nada)</span></label></div></div><div class="flex justify-end gap-2 mt-8"><button type="button" class="close-modal-btn text-slate-600 font-medium py-2 px-4 rounded-lg hover:bg-slate-100" data-modal-id="delete-reservation-modal">Cancelar</button><button type="submit" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Confirmar Exclusão</button></div></form></div></div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
