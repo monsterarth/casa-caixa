@@ -32,10 +32,20 @@ function updateDashboardUI(upcomingGuests, allClients) {
         const client = allClients.find(c => c.id === res.clientId);
         if (!client) return '';
         const checkinDate = res.startDate.toDate().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+        const hasPhone = client.phone && client.phone.trim() !== '';
+        const phoneLink = hasPhone ? `https://wa.me/55${client.phone.replace(/\D/g, '')}` : '#';
+        const phoneColor = hasPhone ? 'bg-green-500 hover:bg-green-600' : 'bg-slate-400 cursor-not-allowed';
+
         return `<div class="border-b pb-2 last:border-b-0">
-                    <p class="font-bold text-slate-800">${client.name}</p>
-                    <p class="text-sm text-slate-600">Check-in: ${checkinDate}</p>
-                    ${client.phone ? `<p class="text-sm text-sky-600"><i class="fas fa-phone mr-2"></i>${client.phone}</p>` : ''}
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-slate-800">${client.name}</p>
+                            <p class="text-sm text-slate-600">Check-in: ${checkinDate}</p>
+                        </div>
+                        <a href="${phoneLink}" target="_blank" class="w-10 h-10 flex-shrink-0 flex items-center justify-center text-white rounded-full ${phoneColor}" ${!hasPhone ? 'onclick="return false;"' : ''}>
+                            <i class="fab fa-whatsapp text-xl"></i>
+                        </a>
+                    </div>
                 </div>`;
     }).join('');
 }
@@ -87,6 +97,35 @@ export function renderTransactionsTable(transactionsToRender) {
                     <button class="text-red-500 hover:text-red-700 delete-transaction-btn" data-id="${tx.id}"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
+    }).join('');
+}
+export function renderClientsTable(allClients) {
+    const tableBody = document.getElementById('clients-table-body');
+    if (!tableBody) return;
+    if (allClients.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">Nenhum cliente cadastrado.</td></tr>';
+        return;
+    }
+    tableBody.innerHTML = allClients.map(client => {
+        const hasPhone = client.phone && client.phone.trim() !== '';
+        const phoneLink = hasPhone ? `https://wa.me/55${client.phone.replace(/\D/g, '')}` : '#';
+        const phoneColor = hasPhone ? 'bg-green-500 hover:bg-green-600' : 'bg-slate-400 cursor-not-allowed';
+
+        return `
+            <tr class="hover:bg-slate-50">
+                <td class="p-3 font-medium">${client.name}</td>
+                <td class="p-3 text-slate-600">${client.phone || 'N/A'}</td>
+                <td class="p-3 text-slate-600 truncate max-w-xs">${client.notes || ''}</td>
+                <td class="p-3 text-center flex justify-center items-center gap-2">
+                    <a href="${phoneLink}" target="_blank" class="w-8 h-8 flex items-center justify-center text-white rounded-full ${phoneColor}" ${!hasPhone ? 'onclick="return false;"' : ''}>
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <button class="text-sky-500 hover:text-sky-700 w-8 h-8 flex items-center justify-center edit-client-btn" data-id="${client.id}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
     }).join('');
 }
 
@@ -185,9 +224,24 @@ export function openTransactionModal(type, transaction = null) {
     document.getElementById('category-wrapper').classList.toggle('hidden', type === 'revenue');
     modal.classList.remove('hidden');
 }
-export function openClientModal() {
-    document.getElementById('client-form').reset();
-    document.getElementById('client-modal').classList.remove('hidden');
+export function openClientModal(client = null) {
+    const modal = document.getElementById('client-modal');
+    const form = document.getElementById('client-form');
+    const title = document.getElementById('client-modal-title');
+    form.reset();
+    
+    if (client) { // Modo Edição
+        title.textContent = "Editar Cliente";
+        form['client-id'].value = client.id;
+        form['client-name'].value = client.name;
+        form['client-phone'].value = client.phone;
+        form['client-notes'].value = client.notes;
+    } else { // Modo Criação
+        title.textContent = "Novo Cliente";
+        form['client-id'].value = '';
+    }
+    
+    modal.classList.remove('hidden');
 }
 export function openDeleteReservationModal(reservation, client) {
     const modal = document.getElementById('delete-reservation-modal');

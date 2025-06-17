@@ -2,8 +2,8 @@ import { auth, db, provider, Timestamp } from './firebase-config.js';
 import { 
     updateAllUI, renderCalendar, openReservationModal, openPaymentModal, 
     openTransactionModal, closeModal, showTab, populateReserveFund, 
-    renderReservationsTable, renderTransactionsTable, openClientModal, 
-    openDeleteReservationModal, openForecastDetailsModal, updateShareControls
+    renderReservationsTable, renderTransactionsTable, renderClientsTable, // Adicionado renderClientsTable
+    openClientModal, openDeleteReservationModal, openForecastDetailsModal, updateShareControls
 } from './ui.js';
 
 // --- ESTADO GLOBAL DO APP ---
@@ -77,17 +77,31 @@ function calculateKPIs(allReservations, targetDate) {
 async function handleSaveClient(event) {
     event.preventDefault();
     const form = event.target;
-    const clientData = { name: form['client-name'].value.trim(), phone: form['client-phone'].value.trim(), notes: form['client-notes'].value.trim(), createdAt: Timestamp.now() };
+    const clientId = form['client-id'].value; // NOVO
+    const clientData = {
+        name: form['client-name'].value.trim(),
+        phone: form['client-phone'].value.trim(),
+        notes: form['client-notes'].value.trim()
+    };
     try {
-        const docRef = await db.collection('clients').add(clientData);
-        closeModal('client-modal');
-        const clientSelect = document.getElementById('res-client-select');
-        if (clientSelect) {
-            const option = new Option(clientData.name, docRef.id, true, true);
-            clientSelect.add(option);
-            clientSelect.dispatchEvent(new Event('change'));
+        if (clientId) { // Modo Edição
+            await db.collection('clients').doc(clientId).update(clientData);
+        } else { // Modo Criação
+            clientData.createdAt = Timestamp.now();
+            const docRef = await db.collection('clients').add(clientData);
+            // Seleciona o cliente recém-criado no formulário de reserva, se aplicável
+            const clientSelect = document.getElementById('res-client-select');
+            if (clientSelect && document.getElementById('reservation-modal').style.display !== 'none') {
+                const option = new Option(clientData.name, docRef.id, true, true);
+                clientSelect.add(option);
+                clientSelect.dispatchEvent(new Event('change'));
+            }
         }
-    } catch (error) { console.error("Erro ao salvar cliente: ", error); alert("Não foi possível salvar o cliente."); }
+        closeModal('client-modal');
+    } catch (error) {
+        console.error("Erro ao salvar cliente: ", error);
+        alert("Não foi possível salvar o cliente.");
+    }
 }
 
 async function handleSaveReservation(event) {
@@ -276,11 +290,12 @@ function setupEventListeners() {
     document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => showTab(b.getAttribute('data-tab'))));
     document.querySelectorAll('.close-modal-btn').forEach(b => b.addEventListener('click', () => closeModal(b.getAttribute('data-modal-id'))));
 
-    document.getElementById('calendar-add-reservation-btn').addEventListener('click', () => openReservationModal(null, clients));
+document.getElementById('calendar-add-reservation-btn').addEventListener('click', () => openReservationModal(null, clients));
     document.getElementById('reservations-add-reservation-btn').addEventListener('click', () => openReservationModal(null, clients));
     document.getElementById('add-revenue-btn').addEventListener('click', () => openTransactionModal('revenue'));
     document.getElementById('add-expense-btn').addEventListener('click', () => openTransactionModal('expense'));
-    document.getElementById('add-new-client-btn').addEventListener('click', openClientModal);
+    document.getElementById('add-new-client-btn').addEventListener('click', () => openClientModal(null));
+    document.getElementById('clients-add-client-btn').addEventListener('click', () => openClientModal(null)); // NOVO
     document.getElementById('forecast-card').addEventListener('click', () => {
         const upcomingPayments = reservations.filter(r => (r.totalValue - (r.amountPaid || 0)) > 0.01 && r.status !== 'Cancelada').sort((a, b) => a.startDate.toDate() - b.startDate.toDate()).slice(0, 5);
         openForecastDetailsModal(upcomingPayments, clients);
@@ -319,6 +334,14 @@ function setupEventListeners() {
     document.getElementById('tx-filter-search').addEventListener('input', applyFiltersAndRender);
     document.getElementById('tx-filter-date-start').addEventListener('change', applyFiltersAndRender);
     document.getElementById('tx-filter-date-end').addEventListener('change', applyFiltersAndRender);
+    // ADICIONEI AQUI
+    document.getElementById('clients-table-body').addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-client-btn');
+        if (editBtn) {
+            window.editClient(editBtn.dataset.id);
+        }
+    });
+    // ATE AQUI
 }
 
 function navigateMonth(direction) {
@@ -352,6 +375,7 @@ function listenForData() {
 }
 
 function applyFiltersAndRender() {
+    // Filtro de Reservas (sem alteração)
     const resSearchTerm = document.getElementById('res-filter-search').value.toLowerCase();
     const resStatusFilter = document.getElementById('res-filter-status').value;
     const filteredReservations = reservations.filter(res => {
@@ -360,6 +384,8 @@ function applyFiltersAndRender() {
         const matchesStatus = resStatusFilter ? res.status === resStatusFilter : true;
         return matchesSearch && matchesStatus;
     });
+
+    // Filtro de Transações (sem alteração)
     const txSearchTerm = document.getElementById('tx-filter-search').value.toLowerCase();
     const txDateStart = document.getElementById('tx-filter-date-start').value;
     const txDateEnd = document.getElementById('tx-filter-date-end').value;
@@ -370,8 +396,11 @@ function applyFiltersAndRender() {
         const matchesDateEnd = txDateEnd ? txDate <= new Date(txDateEnd + 'T23:59:59') : true;
         return matchesSearch && matchesDateStart && matchesDateEnd;
     });
+    
+    // Renderiza todas as tabelas
     renderReservationsTable(filteredReservations, clients);
     renderTransactionsTable(filteredTransactions);
+    renderClientsTable(clients); // NOVO
     runCalculationsAndUpdateUI();
 }
 
@@ -418,4 +447,8 @@ window.openPaymentModal = (resId) => {
     const reservation = reservations.find(r => r.id === resId);
     const client = clients.find(c => c.id === reservation?.clientId);
     openPaymentModal(reservation, client);
+};
+window.editClient = (clientId) => {
+    const client = clients.find(c => c.id === clientId);
+    if(client) openClientModal(client);
 };
