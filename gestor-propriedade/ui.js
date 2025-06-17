@@ -1,22 +1,27 @@
-let financialChart = null;
+// NOVO: Variáveis para os novos gráficos
+let financialEvolutionChart = null;
+let sourceBreakdownChart = null;
+let financialChart = null; // Gráfico antigo, mantido por enquanto ou pode ser removido
 
 // --- FUNÇÕES DE RENDERIZAÇÃO PRINCIPAIS ---
 
 export function updateAllUI(data) {
-    updateDashboardUI(data.summary, data.forecast, data.fundoCaixa);
-    updateFinancialChart(data.summary);
-    renderTransactionsTable(data.transactions);
-    renderReservationsTable(data.reservations);
+    updateDashboardUI(data.summary, data.forecast, data.fundoCaixa, data.kpis);
+    updateFinancialEvolutionChart(data.evolutionData); // NOVO
+    updateSourceBreakdownChart(data.sourceData); // NOVO
     renderSettlementTab(data.settlement);
+    // As tabelas são renderizadas pela função applyFiltersAndRender em app.js
 }
 
-export function updateDashboardUI(summary, forecast, fundoCaixa) {
+export function updateDashboardUI(summary, forecast, fundoCaixa, kpis) {
     const el = id => document.getElementById(id);
     el('fundoCaixa').textContent = formatCurrency(fundoCaixa);
     el('cashBalance').textContent = formatCurrency(summary.cashBalance);
     el('forecast').textContent = formatCurrency(forecast);
-    el('confirmedRevenue').textContent = formatCurrency(summary.confirmedRevenue);
-    el('condominiumExpenses').textContent = formatCurrency(summary.condominiumExpenses);
+    
+    // NOVO: Atualiza os KPIs
+    el('occupancyRate').textContent = `${(kpis.occupancyRate || 0).toFixed(1)}%`;
+    el('averageDailyRate').textContent = formatCurrency(kpis.adr);
 }
 
 export function renderSettlementTab(settlement) {
@@ -40,10 +45,11 @@ export function populateSettingsForm(settings) {
 
 // --- RENDERIZAÇÃO DE TABELAS ---
 
-export function renderTransactionsTable(allTransactions) {
+export function renderTransactionsTable(transactionsToRender) {
     const tableBody = document.getElementById('transactions-table-body');
     if (!tableBody) return;
-    tableBody.innerHTML = allTransactions.sort((a, b) => b.date.toDate() - a.date.toDate()).map(tx => {
+    // ALTERADO: Ordenação movida para app.js (onSnapshot)
+    tableBody.innerHTML = transactionsToRender.map(tx => {
         const isRevenue = tx.type === 'revenue';
         const date = tx.date.toDate().toLocaleDateString('pt-BR');
         return `
@@ -64,10 +70,11 @@ export function renderTransactionsTable(allTransactions) {
     }).join('');
 }
 
-export function renderReservationsTable(allReservations) {
+export function renderReservationsTable(reservationsToRender) {
     const tableBody = document.getElementById('reservations-table-body');
     if(!tableBody) return;
-    tableBody.innerHTML = allReservations.sort((a,b) => b.startDate.toDate() - a.startDate.toDate()).map(res => {
+    // ALTERADO: Ordenação movida para app.js (onSnapshot)
+    tableBody.innerHTML = reservationsToRender.map(res => {
         const start = res.startDate.toDate().toLocaleDateString('pt-BR');
         const end = res.endDate.toDate().toLocaleDateString('pt-BR');
         const statusColors = {
@@ -101,29 +108,68 @@ export function renderReservationsTable(allReservations) {
 
 // --- GRÁFICOS E MODAIS ---
 
-export function updateFinancialChart(summary) {
-    const ctx = document.getElementById('financialCompositionChart')?.getContext('2d');
+// NOVO: Função para renderizar o gráfico de evolução financeira
+export function updateFinancialEvolutionChart(evolutionData) {
+    const ctx = document.getElementById('financialEvolutionChart')?.getContext('2d');
     if (!ctx) return;
     const chartData = {
-        labels: ['Receita Confirmada', 'Despesas Condomínio'],
+        labels: evolutionData.labels,
+        datasets: [
+            {
+                label: 'Receitas',
+                data: evolutionData.revenues,
+                backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                borderColor: 'rgba(34, 197, 94, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            },
+            {
+                label: 'Despesas',
+                data: evolutionData.expenses,
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                borderColor: 'rgba(239, 68, 68, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            }
+        ]
+    };
+    if (financialEvolutionChart) {
+        financialEvolutionChart.data = chartData;
+        financialEvolutionChart.update();
+    } else {
+        financialEvolutionChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+        });
+    }
+}
+
+// NOVO: Função para renderizar o gráfico de origem de receita
+export function updateSourceBreakdownChart(sourceData) {
+    const ctx = document.getElementById('sourceBreakdownChart')?.getContext('2d');
+    if (!ctx) return;
+    const chartData = {
+        labels: sourceData.labels,
         datasets: [{
-            data: [summary.confirmedRevenue, summary.condominiumExpenses],
-            backgroundColor: ['#22c55e', '#ef4444'],
+            data: sourceData.data,
+            backgroundColor: ['#38bdf8', '#818cf8', '#f472b6', '#fbbf24', '#4ade80'],
             borderColor: '#f0f4f8',
             borderWidth: 4
         }]
     };
-    if (financialChart) {
-        financialChart.data = chartData;
-        financialChart.update();
+    if (sourceBreakdownChart) {
+        sourceBreakdownChart.data = chartData;
+        sourceBreakdownChart.update();
     } else {
-        financialChart = new Chart(ctx, {
+        sourceBreakdownChart = new Chart(ctx, {
             type: 'doughnut',
             data: chartData,
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '70%' }
         });
     }
 }
+
 
 export function openReservationModal(reservation) {
     const modal = document.getElementById('reservation-modal');
@@ -151,18 +197,17 @@ export function openReservationModal(reservation) {
         document.getElementById('details-paid').textContent = formatCurrency(amountPaid);
         document.getElementById('details-due').textContent = formatCurrency(amountDue);
         
-        // LÓGICA DE VISIBILIDADE DOS BOTÕES
         if (reservation.sourcePlatform === 'Airbnb') {
-            registerPaymentBtn.classList.add('hidden'); // Esconde o botão de pagamento padrão
+            registerPaymentBtn.classList.add('hidden');
             if (reservation.isPayoutConfirmed) {
-                confirmPayoutBtn.classList.add('hidden'); // Se já foi confirmado, esconde o botão de payout
+                confirmPayoutBtn.classList.add('hidden');
             } else {
-                confirmPayoutBtn.classList.remove('hidden'); // Mostra o botão de payout
-                confirmPayoutBtn.dataset.id = reservation.id; // Adiciona o ID ao botão para o handler
+                confirmPayoutBtn.classList.remove('hidden');
+                confirmPayoutBtn.dataset.id = reservation.id;
             }
         } else {
-            confirmPayoutBtn.classList.add('hidden'); // Esconde o botão de payout
-            registerPaymentBtn.classList.remove('hidden'); // Mostra o de pagamento padrão
+            confirmPayoutBtn.classList.add('hidden');
+            registerPaymentBtn.classList.remove('hidden');
             registerPaymentBtn.onclick = () => window.openPaymentModal(reservation.id);
         }
 
@@ -174,6 +219,13 @@ export function openReservationModal(reservation) {
         document.getElementById('financial-details-section').classList.add('hidden');
     }
     
+    // NOVO: Adiciona validação de data
+    const startDateInput = form['res-start-date'];
+    const endDateInput = form['res-end-date'];
+    startDateInput.addEventListener('change', () => {
+        endDateInput.min = startDateInput.value;
+    });
+
     modal.classList.remove('hidden');
 }
 
@@ -245,14 +297,24 @@ export function renderCalendar(currentDate, reservations) {
             if (!res.startDate || !res.endDate || res.status === 'Cancelada') return false;
             const start = res.startDate.toDate(); start.setHours(0, 0, 0, 0);
             const end = res.endDate.toDate(); end.setHours(0, 0, 0, 0);
-            return today >= start && today <= end;
+            return today >= start && today < end; // ALTERADO para < end para não incluir o dia do checkout
         });
 
+        // NOVO: Cores de status para o calendário
+        const statusColors = {
+            'Confirmada': 'bg-green-500',
+            'Pré-reserva': 'bg-yellow-500',
+            'Em andamento': 'bg-indigo-500',
+            'Finalizada': 'bg-blue-500',
+        };
+
         dayReservations.forEach(res => {
-            const propColor = res.propertyId === 'estancia_do_vale' ? 'bg-blue-500' : 'bg-indigo-500';
+            const statusColor = statusColors[res.status] || 'bg-slate-500';
             const eventDiv = document.createElement('div');
-            eventDiv.className = `event-chip text-white text-xs p-1 rounded-md truncate cursor-pointer ${propColor}`;
+            eventDiv.className = `event-chip text-white text-xs p-1 rounded-md truncate cursor-pointer ${statusColor}`;
             eventDiv.textContent = res.guestName;
+            // NOVO: Adiciona tooltip nativo do navegador com mais detalhes
+            eventDiv.title = `${res.guestName}\nStatus: ${res.status}\nValor: ${formatCurrency(res.totalValue)}`;
             eventDiv.addEventListener('click', () => window.editReservation(res.id));
             eventsContainer.appendChild(eventDiv);
         });

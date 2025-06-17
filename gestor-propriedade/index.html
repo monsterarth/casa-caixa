@@ -36,37 +36,36 @@
             <div id="dashboard-tab" class="tab-content active">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-3 space-y-6">
-                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                             <div class="stat-card bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-400">
-                                <h3 class="text-slate-500 text-lg font-medium">Fundo de Caixa (Teórico)</h3>
+                                <h3 class="text-slate-500 text-lg font-medium">Fundo de Caixa (T)</h3>
                                 <p id="fundoCaixa" class="text-4xl font-bold text-slate-900 mt-2">R$ 0,00</p>
                             </div>
                             <div class="stat-card bg-white p-6 rounded-xl shadow-md">
-                                <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (Real)</h3>
+                                <h3 class="text-slate-500 text-lg font-medium">Saldo em Caixa (R)</h3>
                                 <p id="cashBalance" class="text-3xl font-bold text-slate-900 mt-2">R$ 0,00</p>
                             </div>
                              <div class="stat-card bg-white p-6 rounded-xl shadow-md">
                                 <h3 class="text-slate-500 text-lg font-medium">Previsão a Receber</h3>
                                 <p id="forecast" class="text-3xl font-bold text-amber-500 mt-2">R$ 0,00</p>
                             </div>
+                            <div class="stat-card bg-white p-6 rounded-xl shadow-md">
+                                <h3 class="text-slate-500 text-lg font-medium">Ocupação (Mês)</h3>
+                                <p id="occupancyRate" class="text-3xl font-bold text-teal-500 mt-2">0%</p>
+                            </div>
+                            <div class="stat-card bg-white p-6 rounded-xl shadow-md">
+                                <h3 class="text-slate-500 text-lg font-medium">Diária Média (Mês)</h3>
+                                <p id="averageDailyRate" class="text-3xl font-bold text-cyan-500 mt-2">R$ 0,00</p>
+                            </div>
                         </div>
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-                                <h3 class="text-xl font-semibold text-slate-800 mb-4">Detalhamento para Divisão</h3>
-                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <p class="text-slate-500">Receita Confirmada</p>
-                                        <p id="confirmedRevenue" class="text-2xl font-bold text-green-600">R$ 0,00</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-slate-500">Despesas do Condomínio</p>
-                                        <p id="condominiumExpenses" class="text-2xl font-bold text-red-600">R$ 0,00</p>
-                                    </div>
-                                </div>
+                                <h3 class="text-xl font-semibold text-slate-800 mb-4">Evolução Financeira (Últimos 6 meses)</h3>
+                                <div class="h-64"><canvas id="financialEvolutionChart"></canvas></div>
                             </div>
                             <div class="bg-white p-6 rounded-xl shadow-md">
-                                <h3 class="text-xl font-semibold text-slate-800 mb-4">Composição Financeira</h3>
-                                <div class="h-64"><canvas id="financialCompositionChart"></canvas></div>
+                                 <h3 class="text-xl font-semibold text-slate-800 mb-4">Origem da Receita</h3>
+                                <div class="h-64"><canvas id="sourceBreakdownChart"></canvas></div>
                             </div>
                         </div>
                     </div>
@@ -96,11 +95,15 @@
             
             <div id="reservations-tab" class="tab-content">
                 <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                     <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                     <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                         <h2 class="text-2xl font-semibold text-slate-800">Gerenciador de Reservas</h2>
                         <button id="reservations-add-reservation-btn" class="w-full sm:w-auto bg-sky-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-600 transition-colors">
                             <i class="fas fa-plus mr-2"></i>Nova Reserva
                         </button>
+                     </div>
+                     <div class="flex flex-wrap gap-4 mb-4 p-4 bg-slate-50 rounded-lg">
+                        <div class="flex-grow"><label for="res-filter-search" class="block text-sm font-medium text-slate-600">Buscar por nome</label><input type="text" id="res-filter-search" class="input-style" placeholder="Nome do hóspede..."></div>
+                        <div class="flex-grow"><label for="res-filter-status" class="block text-sm font-medium text-slate-600">Filtrar por Status</label><select id="res-filter-status" class="input-style"><option value="">Todos</option><option value="Pré-reserva">Pré-reserva</option><option value="Confirmada">Confirmada</option><option value="Em andamento">Em andamento</option><option value="Finalizada">Finalizada</option><option value="Cancelada">Cancelada</option></select></div>
                      </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
@@ -121,13 +124,18 @@
 
             <div id="transactions-tab" class="tab-content">
                  <div class="bg-white p-4 md:p-6 rounded-xl shadow-md">
-                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                         <h2 class="text-2xl font-semibold text-slate-800">Histórico de Lançamentos</h2>
                         <div class="flex gap-2">
                             <button id="add-revenue-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors w-full sm:w-auto"><i class="fas fa-plus mr-2"></i>Receita</button>
                             <button id="add-expense-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors w-full sm:w-auto"><i class="fas fa-minus mr-2"></i>Despesa</button>
                         </div>
                      </div>
+                    <div class="flex flex-wrap gap-4 mb-4 p-4 bg-slate-50 rounded-lg">
+                        <div class="flex-grow"><label for="tx-filter-search" class="block text-sm font-medium text-slate-600">Buscar por descrição</label><input type="text" id="tx-filter-search" class="input-style" placeholder="Descrição..."></div>
+                        <div class="flex-grow"><label for="tx-filter-date-start" class="block text-sm font-medium text-slate-600">Data Início</label><input type="date" id="tx-filter-date-start" class="input-style"></div>
+                        <div class="flex-grow"><label for="tx-filter-date-end" class="block text-sm font-medium text-slate-600">Data Fim</label><input type="date" id="tx-filter-date-end" class="input-style"></div>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 text-slate-600"><tr><th class="p-3">Descrição</th><th class="p-3">Valor</th><th class="p-3">Categoria</th><th class="p-3">Data</th><th class="p-3 text-center">Ações</th></tr></thead>
@@ -274,8 +282,16 @@
                     <div><label for="tx-date" class="block text-sm font-medium text-slate-700">Data</label><input type="date" id="tx-date" required class="input-style"></div>
                     <div id="category-wrapper">
                         <label for="tx-category" class="block text-sm font-medium text-slate-700">Categoria da Despesa</label>
-                        <select id="tx-category" required class="input-style">
-                            <option value="Condomínio">Condomínio</option><option value="Pessoal - Arthur">Pessoal - Arthur</option><option value="Pessoal - Lucas">Pessoal - Lucas</option><option value="Outras">Outras</option>
+                         <select id="tx-category" required class="input-style">
+                            <option value="Condomínio">Condomínio</option>
+                            <option value="Limpeza">Limpeza</option>
+                            <option value="Manutenção">Manutenção</option>
+                            <option value="Utilidades">Utilidades (Luz, Água, Net)</option>
+                            <option value="Impostos">Impostos</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Pessoal - Arthur">Pessoal - Arthur</option>
+                            <option value="Pessoal - Lucas">Pessoal - Lucas</option>
+                            <option value="Outras">Outras</option>
                         </select>
                     </div>
                 </div>
