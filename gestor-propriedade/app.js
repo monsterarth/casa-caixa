@@ -121,11 +121,39 @@ function initializeApp() {
 }
 
 function setupEventListeners() {
+    // --- Eventos que já funcionavam ---
     document.getElementById('logout-button').addEventListener('click', () => auth.signOut());
     document.getElementById('prev-month-btn').addEventListener('click', () => navigateMonth(-1));
     document.getElementById('next-month-btn').addEventListener('click', () => navigateMonth(1));
     document.getElementById('reservation-form').addEventListener('submit', handleAddOrUpdateReservation);
     document.getElementById('payment-form').addEventListener('submit', handleRegisterPayment);
+
+    // --- NOVA LÓGICA DE EVENTOS ---
+
+    // Abas de navegação (Dashboard, Calendário, etc.)
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.getAttribute('data-tab');
+            showTab(tabId);
+        });
+    });
+
+    // Botão "Nova Reserva"
+    const addReservationBtn = document.getElementById('add-reservation-btn');
+    addReservationBtn.addEventListener('click', () => {
+        // Chamamos a função passando os dados que ela precisa
+        openReservationModal(null, reservations, null);
+    });
+
+    // Botões de fechar modais
+    const closeModalButtons = document.querySelectorAll('.close-modal-btn');
+    closeModalButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const modalId = button.getAttribute('data-modal-id');
+            closeModal(modalId);
+        });
+    });
 }
 
 function navigateMonth(direction) {
@@ -170,9 +198,3 @@ auth.onAuthStateChanged(user => {
 document.getElementById('login-button')?.addEventListener('click', () => {
     auth.signInWithPopup(provider).catch(error => console.error("Erro no login:", error));
 });
-
-
-// Para que os botões do HTML (onclick) possam chamar as funções
-window.openReservationModal = (id, startDate) => openReservationModal(id, reservations, startDate);
-window.closeModal = closeModal;
-window.showTab = showTab;
