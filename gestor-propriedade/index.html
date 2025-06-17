@@ -6,19 +6,7 @@
     <title>Gestor de Propriedades</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        .tab-button { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; transition: all 0.3s ease; }
-        .tab-button.active { background-color: #38bdf8; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .stat-card { transition: all 0.3s ease; }
-        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
-        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
-        .calendar-day { min-height: 120px; cursor: pointer; }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="text-slate-800">
 
@@ -185,9 +173,12 @@
     </div>
 
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="app.js"></script>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="ui.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
