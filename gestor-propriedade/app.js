@@ -283,7 +283,7 @@ function initializeApp() {
 
 function setupEventListeners() {
     document.getElementById('logout-button').addEventListener('click', () => auth.signOut());
-    document.getElementById('login-button')?.addEventListener('click', () => auth.signInWithPopup(provider));
+    document.getElementById('login-button')?.addEventListener('click', () => auth.signInWithRedirect(provider));
     
     document.getElementById('prev-month-btn').addEventListener('click', () => navigateMonth(-1));
     document.getElementById('next-month-btn').addEventListener('click', () => navigateMonth(1));
